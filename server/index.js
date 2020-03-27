@@ -122,4 +122,6 @@ app.use(async ctx => {
 // socket.io
 IO.init(server);
 
-server.listen(8001);
+module.exports = (port, callback) => {
+	server.listen(port || 8001, callback);
+};
