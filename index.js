@@ -2,10 +2,13 @@ const Path = require('path');
 const FS = require('fs');
 
 require("./contentManager");
+require("./nodeManager");
 require("./core");
-require("./core/events/delaytrigger.js");
-require("./core/datastore/lrucache.js");
+// require("./core/events/delaytrigger.js");
+// require("./core/datastore/lrucache.js");
 loadall("./core/commandline");
+
+const vueService = require('@vue/cli-service');
 const IPFS = require('./ipfs');
 
 const CLP = _('CL.CLP');
@@ -25,6 +28,7 @@ const clp = CLP({
 })
 .describe(setStyle(CSP_Name + " v" + CSP_Version, "bold"))
 .addOption('--config -c <path> >> 指定配置文件')
+.addOption('--dev >> 开发模式，不自动 build Vue 和启动 IPFS daemon')
 .on('command', async (param, command) => {
 	var cfgPath = CSP_Default_Config;
 	if (param.config) cfgPath = param.path || CSP_Default_Config;
@@ -51,8 +55,14 @@ const clp = CLP({
 	console.log('     节点 ID：' + config.node.id);
 
 	global.NodeConfig = config;
+	global.NodeManager.init();
 
-	IPFS.start();
+	if (!param.dev) {
+		// 检查前端页面是否准备就绪
+		await checkFrontend();
+		// 启动 IPFS
+		await IPFS.start(config.port - 4000);
+	}
 
 	require('./server')(config.port, () => {
 		console.log(setStyle('星站开始工作！', 'bold'));
@@ -69,6 +79,7 @@ const getFullPath = path => {
 const readConfig = filepath => {
 	var config = require(filepath);
 	config.user = getFullPath(config.user);
+	if (config.port < 5000) config.port += 5000;
 	IPFS.cmd = config.ipfs;
 	IPFS.path = config.user;
 
@@ -104,6 +115,37 @@ const readConfig = filepath => {
 		key: file.Identity.PrivKey
 	};
 	return config;
+};
+const checkFrontend = () => new Promise(res => {
+	FS.readdir('./dist', (err, ctx) => {
+		if (!!err) {
+			if (err.code === 'ENOENT') {
+				console.log('前端页面尚未部署，请稍等……');
+				return buildFrontend(res);
+			}
+			else {
+				err = new Error('前端页面部署目录出错！');
+				err.code = 'FOLDER_ERROR';
+				throw err;
+			}
+		}
+		res();
+	});
+});
+const buildFrontend = res => {
+	var service = new vueService(process.cwd());
+	service.run('build', {
+		_: ['build'],
+		modern: false,
+		report: false,
+		'report-json': false,
+		'inline-vue': false,
+		watch: false,
+		open: false,
+		copy: false,
+		https: false,
+		verbose: false
+	}, ['build']).then(res);
 };
 
 clp.launch();

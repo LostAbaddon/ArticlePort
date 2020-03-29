@@ -44,11 +44,11 @@ export default Vue => {
 
 		socket = io.connect(config.baseURL);
 		socket.on('__message__', msg => {
-			var event = msg.event, data = msg.data;
+			var event = msg.event, data = msg.data, err = msg.err;
 			if (!event) return;
 			var cbs = responsers.get(event);
 			if (!cbs || !cbs.size) return;
-			for (let cb of cbs) cb(data, msg);
+			for (let cb of cbs) cb(data, err, msg);
 		});
 
 		Vue.$net.emit = function (event, data) {

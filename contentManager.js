@@ -99,3 +99,7 @@ Manager.flush = channel => new Promise(res => {
 });
 
 global.ContentManager = Manager;
+
+global.ContentUpdated = (node, hash, path) => {
+	
+};

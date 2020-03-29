@@ -22,7 +22,7 @@ const callback = (data, socket, event) => {
 
 	var tempFileName = data.id + '-' + info.publishAt + '.file';
 	tempFileName = Path.join(FieldPath, tempFileName);
-	FS.writeFile(tempFileName, JSON.stringify(file), 'utf8', async err => {
+	FS.writeFile(tempFileName, file, 'utf8', async err => {
 		if (!!err) {
 			console.error('写临时文件 ' + tempFileName + ' 失败：', err);
 			return;

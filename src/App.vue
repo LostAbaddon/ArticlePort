@@ -1,71 +1,90 @@
 <template>
 	<div id="app">
-		<v-header :title="title" :subtitle="subtitle"></v-header>
-		<v-side-bar :menu="menu" :initKey="init" @click="chooseRole"></v-side-bar>
-		<div class="page-container" :class="{'collapsed':collapsed}">
-			<div class="content">
-				<transition name="move" mode="out-in">
-					<keep-alive>
-						<router-view></router-view>
-					</keep-alive>
-				</transition>
-			</div>
-		</div>
+		<toolbar />
+		<showroom />
+		<configuration />
+		<node-manager />
+		<loadmask />
+		<popup />
 	</div>
 </template>
 
 <script>
-import config from './config.js';
-import routerMap from './router/map.js';
-import map2menu from './router/map2menu.js';
 import eventBus from './components/eventbus.js';
-import vHeader from './components/header.vue';
-import vSideBar from './components/sidebar.vue';
+import loadmask from './components/loadMask.vue';
+import popup from './components/popup.vue';
+import toolbar from './components/toolbar.vue';
+import showroom from './components/showroom.vue';
+import configuration from './components/configuration.vue';
+import nodeManager from './components/nodeManager.vue';
 
 export default {
 	data () {
 		return {
-			title: config.title,
-			subtitle: '',
-			collapsed: false,
-			init: 'core',
-			menu: map2menu(routerMap),
+			nodeInfo: {}
 		};
 	},
-	components: { vHeader, vSideBar },
-	created () {
-		eventBus.on('collapse', collapsed => {
-			this.collapsed = collapsed;
+	components: {
+		loadmask,
+		popup,
+		toolbar,
+		showroom,
+		configuration,
+		nodeManager
+	},
+	mounted () {
+		this.$net.register('RequestStarPortInfo', (msg, err, event) => {
+			eventBus.emit('loadFinish');
+			if (!!err) {
+				eventBus.emit('popupShow', '出错', err);
+				return;
+			}
+			eventBus.emit('updateNodeInfo', msg);
 		});
+
+		eventBus.emit('loadStart');
+		this.$net.emit('RequestStarPortInfo');
 	},
 	methods: {
-		chooseRole (key, path) {
-			console.log(key, path);
-			return;
-			if (key === 'core') this.$router.push('/test1');
-			else if (key === 'distributor') this.$router.push('/test2');
-			else if (key === 'supplier') this.$router.push('/test3');
-		},
 	}
 }
-/*
-*/
 </script>
 
 <style>
 html, body {
 	height: 100%;
-}
-#app {
-	height: 100%;
-	background-color: rgb(75, 80, 85);
-	font-family: 'Avenir', Helvetica, Arial, sans-serif;
+	margin: 0px;
+	padding: 0px;
+	background-color: black;
+	font-family: 'Avenir', Helvetica, Arial, sans-serif, 宋体;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	text-align: center;
-	color: #2c3e50;
+	color: white;
+}
+#app {
+	width: 100%;
+	height: 100%;
+	background-color: rgb(22, 24, 35);
+	color: rgb(227, 239, 253);
 }
 
+.scroller::-webkit-scrollbar {
+	width: 12px;
+	background-color: transparent;
+	cursor: default;
+}
+.scroller::-webkit-scrollbar-thumb {
+	border-radius: 5px;
+	background-color: rgb(57, 47, 65);
+	box-shadow: inset 2px 2px 3px rgba(186, 202, 198, 0.5);
+	cursor: default;
+}
+.scroller::-webkit-scrollbar-track {
+	border-radius: 6px;
+	background-color: rgba(186, 202, 198, 0.1);
+	box-shadow: inset 2px 2px 3px rgba(22, 24, 35, 0.2);
+	cursor: default;
+}
 .no-select {
 	user-select: none;
 }

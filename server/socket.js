@@ -15,11 +15,18 @@ const init = (server) => {
 		});
 		socket.on('__message__', msg => {
 			var event = msg.event, data = msg.data;
-			if (!event) return;
-			eventLoop.emit(event, data, socket, msg);
+			if (!eventLoop.eventNames().includes(event)) {
+				socket.emit('__message__', {
+					event,
+					err: 'No Responsor!'
+				});
+			}
+			else {
+				eventLoop.emit(event, data, socket, msg);
+			}
 		});
-		socket.send = (event, data) => {
-			socket.emit('__message__', { event, data });
+		socket.send = (event, data, err) => {
+			socket.emit('__message__', { event, data, err });
 		};
 		eventLoop.emit('connected', null, socket);
 	});
@@ -41,7 +48,14 @@ const autoRegister = path => {
 			if (!match) return;
 			let res = require(p);
 			if (!res) return;
-			register(res.event, res.callback, res.namespace || '');
+			if (Array.isArray(res)) {
+				res.forEach(res => {
+					register(res.event, res.callback, res.namespace || '');
+				});
+			}
+			else {
+				register(res.event, res.callback, res.namespace || '');
+			}
 		}
 		else if (stat.isDirectory()) {
 			autoRegister(p);
