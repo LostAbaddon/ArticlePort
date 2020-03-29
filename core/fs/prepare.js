@@ -9,18 +9,30 @@
 const FS = require('fs');
 const Path = require('path');
 
-const preparePath = async (path, cb) => {
+const preparePath = (path, cb) => new Promise(async res => {
 	FS.access(path, (err) => {
-		if (!err) return cb(true);
+		if (!err) {
+			if (!!cb) cb(true);
+			res(true);
+			return;
+		}
 		var parent = Path.parse(path).dir;
 		preparePath(parent, (result) => {
-			if (!result) return cb(false);
+			if (!result) {
+				if (!!cb) cb(false);
+				res(false);
+				return;
+			}
 			FS.mkdir(path, (err) => {
-				if (!err) return cb(true);
+				if (!err) {
+					if (!!cb) cb(true);
+					res(true);
+					return;
+				}
 			});
 		});
 	});
-};
+});
 const preparePathSync = path => {
 	var has;
 	try {

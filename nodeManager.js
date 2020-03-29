@@ -3,16 +3,17 @@ const FS = require('fs');
 
 const Manager = {};
 const nodeList = {};
-var filepath = '';
+var connectionFilepath = '';
+var personelFilepath = '';
 var storagePath = '';
 
 Manager.init = () => new Promise(res => {
 	storagePath = Path.join(process.cwd(), global.NodeConfig.storage);
 
-	filepath = Path.join(process.cwd(), global.NodeConfig.storage, 'connection.json');
+	connectionFilepath = Path.join(storagePath, 'connection.json');
 	var json;
 	try {
-		json = require(filepath);
+		json = require(connectionFilepath);
 	}
 	catch {
 		json = {};
@@ -22,8 +23,8 @@ Manager.init = () => new Promise(res => {
 		IPFS.subscribe(id);
 	});
 
-	filepath = Path.join(process.cwd(), global.NodeConfig.storage, 'personel.json');
-	FS.readFile(filepath, 'utf8', (err, data) => {
+	personelFilepath = Path.join(storagePath, 'personel.json');
+	FS.readFile(personelFilepath, 'utf8', (err, data) => {
 		if (!!err || !data) {
 			json = {};
 			json.signup = Date.now();
@@ -34,7 +35,7 @@ Manager.init = () => new Promise(res => {
 		json.name = global.NodeConfig.name;
 		json.id = global.NodeConfig.node.id;
 		json.signin = Date.now();
-		FS.writeFile(filepath, JSON.stringify(json), 'utf8', async () => {
+		FS.writeFile(personelFilepath, JSON.stringify(json), 'utf8', async () => {
 			var hash = await IPFS.uploadFolder(storagePath);
 			console.log('更新内容星站：' + hash);
 			res();
@@ -53,7 +54,7 @@ Manager.addNode = node => new Promise((res, rej) => {
 	if (old) return res();
 	nodeList[node] = node;
 
-	FS.writeFile(filepath, JSON.stringify(nodeList), 'utf8', async (err) => {
+	FS.writeFile(connectionFilepath, JSON.stringify(nodeList), 'utf8', async (err) => {
 		if (!!err) {
 			rej(err);
 		}
@@ -73,7 +74,7 @@ Manager.removeNode = node => new Promise((res, rej) => {
 	if (!old) return res();
 	delete nodeList[node];
 
-	FS.writeFile(filepath, JSON.stringify(nodeList), 'utf8', async (err) => {
+	FS.writeFile(connectionFilepath, JSON.stringify(nodeList), 'utf8', async (err) => {
 		if (!!err) {
 			rej(err);
 		}

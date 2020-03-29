@@ -5,12 +5,16 @@ const IO = require('socket.io');
 
 var io;
 var eventLoop = new EventEmitter();
+var sockets = [];
 
 const init = (server) => {
 	io = new IO(server);
 
 	io.on('connection', socket => {
+		sockets.push(socket);
 		socket.on('disconnect', () => {
+			var idx = sockets.indexOf(socket);
+			if (idx >= 0) sockets.splice(idx, 1);
 			eventLoop.emit('disconnected', null, socket);
 		});
 		socket.on('__message__', msg => {
@@ -36,6 +40,12 @@ const register = (event, responser) => {
 };
 const unregister = (event, responser) => {
 	eventLoop.off(event, responser);
+};
+const broadcast = (event, data) => {
+	sockets.forEach(socket => {
+		if (!socket) return;
+		socket.send(event, data);
+	});
 };
 
 const autoRegister = path => {
@@ -69,6 +79,7 @@ module.exports = {
 	init,
 	register,
 	unregister,
+	broadcast,
 	get io () {
 		return io
 	}

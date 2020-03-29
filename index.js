@@ -56,14 +56,23 @@ const clp = CLP({
 
 	global.NodeConfig = config;
 
+	var actions;
 	if (!param.dev) {
+		actions = [];
+
 		// 检查前端页面是否准备就绪
-		await checkFrontend();
+		actions.push(checkFrontend());
 		// 启动 IPFS
-		await IPFS.start(config.port - 4000);
+		actions.push(IPFS.start(config.port - 4000));
+
+		await Promise.all(actions);
 	}
 
-	await global.NodeManager.init();
+	actions = [];
+	actions.push(global.ContentManager.init());
+	actions.push(global.NodeManager.init());
+	await Promise.all(actions);
+
 	require('./server')(config.port, () => {
 		console.log(setStyle('星站开始工作！', 'bold'));
 	});
