@@ -43,7 +43,7 @@ Manager.init = () => new Promise(res => {
 	});
 
 	personelFilepath = Path.join(storagePath, 'personel.json');
-	FS.readFile(personelFilepath, 'utf8', (err, data) => {
+	FS.readFile(personelFilepath, 'utf8', async (err, data) => {
 		if (!!err || !data) {
 			json = {};
 			json.signup = Date.now();
@@ -55,7 +55,8 @@ Manager.init = () => new Promise(res => {
 		json.name = global.NodeConfig.name;
 		json.id = global.NodeConfig.node.id;
 		json.signin = Date.now();
-		saveAndPublish();
+		await saveAndPublish();
+		res();
 	});
 });
 Manager.getNodeList = () => {
