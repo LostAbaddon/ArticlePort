@@ -1,7 +1,8 @@
 const Path = require('path');
 const { spawn } = require('child_process');
 
-const RetryDelay = 1000 * 60 * 5;
+const RetryDelay = 1000 * 60 * 10;
+const UpdateDelay = 1000 * 60 * 3;
 
 const IPFS = {};
 const watchList = {};
@@ -31,8 +32,10 @@ const changeMultiAddressPort = (addr, port) => {
 	return addr.join('/');
 };
 const resolveAndFetch = async node => {
+	console.log('获取节点更新：' + node);
 	if (!watchList[node]) return;
 	var hash = await IPFS.resolve(node);
+	console.log('获取节点新哈希：' + node + ' ==> ' + hash);
 	var info = watchList[node];
 	if (!info) return;
 	if (!hash) {
@@ -42,10 +45,17 @@ const resolveAndFetch = async node => {
 		}, RetryDelay);
 		return;
 	}
-	info.hash = hash;
-	var path = await IPFS.downloadFolder(node, hash);
-	info.stamp = Date.now();
-	global.ContentUpdated(node, hash, path);
+	if (info.hash !== hash) {
+		info.hash = hash;
+		let path = await IPFS.downloadFolder(node, hash);
+		console.log('获取节点内容：' + path);
+		info.stamp = Date.now();
+		global.ContentUpdated(node, hash, path);
+	}
+	els {
+		console.log('节点无更新：' + node);
+	}
+	setTimeout(() => resolveAndFetch(node), UpdateDelay);
 };
 
 IPFS.start = port => new Promise(res => {
