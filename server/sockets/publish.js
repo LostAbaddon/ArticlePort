@@ -17,7 +17,7 @@ const callback = (data, socket, event) => {
 	info.fingerprint = data.fingerprint;
 	info.title = data.title;
 	info.author = data.author || NodeConfig.name;
-	info.publisher = NodeConfig.name;
+	info.publisher = NodeConfig.node.id;
 	info.publishAt = Date.now();
 
 	var tempFileName = data.id + '-' + info.publishAt + '.file';

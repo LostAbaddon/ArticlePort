@@ -7,6 +7,25 @@ var connectionFilepath = '';
 var personelFilepath = '';
 var storagePath = '';
 
+const updateConnectionsAndPublish = () => new Promise((res, rej) => {
+	FS.writeFile(connectionFilepath, JSON.stringify(nodeList), 'utf8', async (err) => {
+		if (!!err) {
+			rej(err);
+		}
+		else {
+			await saveAndPublish();
+			res();
+		}
+	});
+});
+const saveAndPublish = () => new Promise(async res => {
+	var hash = await IPFS.uploadFolder(storagePath);
+	console.log('更新内容星站：' + hash);
+	res();
+	hash = await IPFS.publish(hash);
+	console.log('星站内容已更新！', hash);
+});
+
 Manager.init = () => new Promise(res => {
 	storagePath = Path.join(process.cwd(), global.NodeConfig.storage);
 
@@ -31,17 +50,12 @@ Manager.init = () => new Promise(res => {
 		}
 		else {
 			json = JSON.parse(data.toString());
+			if (!json.signup) json.signup = Date.now();
 		}
 		json.name = global.NodeConfig.name;
 		json.id = global.NodeConfig.node.id;
 		json.signin = Date.now();
-		FS.writeFile(personelFilepath, JSON.stringify(json), 'utf8', async () => {
-			var hash = await IPFS.uploadFolder(storagePath);
-			console.log('更新内容星站：' + hash);
-			res();
-			hash = await IPFS.publish(hash);
-			console.log('星站内容已更新！', hash);
-		});
+		saveAndPublish();
 	});
 });
 Manager.getNodeList = () => {
@@ -54,19 +68,7 @@ Manager.addNode = node => new Promise((res, rej) => {
 	if (old) return res();
 	nodeList[node] = node;
 
-	FS.writeFile(connectionFilepath, JSON.stringify(nodeList), 'utf8', async (err) => {
-		if (!!err) {
-			rej(err);
-		}
-		else {
-			let hash = await IPFS.uploadFolder(storagePath);
-			console.log('更新内容星站：' + hash);
-			res();
-			hash = await IPFS.publish(hash);
-			console.log('星站内容已更新！', hash);
-		}
-	});
-
+	updateConnectionsAndPublish();
 	IPFS.subscribe(node);
 });
 Manager.removeNode = node => new Promise((res, rej) => {
@@ -74,20 +76,15 @@ Manager.removeNode = node => new Promise((res, rej) => {
 	if (!old) return res();
 	delete nodeList[node];
 
-	FS.writeFile(connectionFilepath, JSON.stringify(nodeList), 'utf8', async (err) => {
-		if (!!err) {
-			rej(err);
-		}
-		else {
-			let hash = await IPFS.uploadFolder(storagePath);
-			console.log('更新内容星站：' + hash);
-			res();
-			hash = await IPFS.publish(hash);
-			console.log('星站内容已更新！', hash);
-		}
-	});
-
+	updateConnectionsAndPublish();
 	IPFS.unsubscribe(node);
+});
+Manager.changeNodeName = (node, name) => new Promise(res => {
+	var old = nodeList[node];
+	if (old === name) return res();
+	nodeList[node] = name;
+
+	updateConnectionsAndPublish();
 });
 
 global.NodeManager = Manager;
