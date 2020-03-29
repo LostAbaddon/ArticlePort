@@ -52,7 +52,7 @@ const resolveAndFetch = async node => {
 		info.stamp = Date.now();
 		global.ContentUpdated(node, hash, path);
 	}
-	els {
+	else {
 		console.log('节点无更新：' + node);
 	}
 	setTimeout(() => resolveAndFetch(node), UpdateDelay);

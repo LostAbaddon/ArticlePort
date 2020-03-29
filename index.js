@@ -55,7 +55,6 @@ const clp = CLP({
 	console.log('     节点 ID：' + config.node.id);
 
 	global.NodeConfig = config;
-	global.NodeManager.init();
 
 	if (!param.dev) {
 		// 检查前端页面是否准备就绪
@@ -64,6 +63,7 @@ const clp = CLP({
 		await IPFS.start(config.port - 4000);
 	}
 
+	await global.NodeManager.init();
 	require('./server')(config.port, () => {
 		console.log(setStyle('星站开始工作！', 'bold'));
 	});
