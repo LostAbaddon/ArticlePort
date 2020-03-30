@@ -79,7 +79,7 @@ const ReadTimeline = path => new Promise(res => {
 			return;
 		}
 		list.forEach(sub => {
-			var type = sub;
+			var channel = sub;
 			sub = Path.join(path, sub);
 			FS.stat(sub, (err, stats) => {
 				if (!!err || !stats.isDirectory()) {
@@ -109,7 +109,7 @@ const ReadTimeline = path => new Promise(res => {
 					}
 					data = data.content;
 					data.forEach(item => {
-						item.type = type;
+						item.channel = channel;
 						item.publishAt = item.publishAt || 1;
 						var old = ContentMap[item.id];
 						if (!old) {
@@ -251,8 +251,49 @@ Manager.set = (channel, id, info) => {
 	}
 
 	bookShelf.storage.set(id, info);
+	var old = ContentMap[id];
+	ContentMap[id] = info;
+	if (!!old) TimeLine.remove(old);
+	TimeLine.push(info);
+	TimeLine.sort((a, b) => b.publishAt - a.publishAt);
+	IO.broadcast('TimelineUpdated', TimeLine);
+
 	Updater(channel);
 };
+Manager.get = (channel, id) => new Promise(async (res, rej) => {
+	if (!channel) return rej(new Error('频道信息错误！'));
+	var bookShelf = bookShelves[channel];
+	if (!bookShelf) return rej(new Error('无指定频道！'))
+
+	var info = bookShelf.storage.get(id);
+	if (!info) {
+		info = ContentMap[id];
+		if (!info) {
+			rej(new Error('找不到文件！'));
+			return;
+		}
+	}
+	var article = {
+		id: info.id,
+		fingerprint: info.fingerprint,
+		title: info.title,
+		author: info.author,
+		publisher: global.NodeManager.getNodeName(info.publisher)
+	};
+	var content;
+	try {
+		console.log('>>>>', info.ipfs);
+		content = await IPFS.downloadFile(info.ipfs);
+	}
+	catch (err) {
+		console.error('XXXX', err);
+		rej(err);
+		return;
+	}
+	console.log('VVVV done');
+	article.content = content;
+	res(article);
+});
 Manager.packID = channel => {
 	if (!channel) return false;
 	var bookShelf = bookShelves[channel];
@@ -268,7 +309,11 @@ Manager.flush = channel => new Promise(res => {
 	bookShelf.updateCount = FlushCount;
 	Updater(channel, res);
 });
-Manager.getTimeline = () => TimeLine;
+Manager.getTimeline = channels => {
+	if (!channels) return TimeLine;
+	if (String.is(channels)) channels = [channels];
+	return TimeLine.filter(item => channels.includes(item.channel));
+};
 
 global.ContentManager = Manager;
 
@@ -315,7 +360,7 @@ global.ContentUpdated = async (node, hash, path) => {
 					list[id] = item;
 					old = ContentMap[id];
 					ContentMap[id] = item;
-					TimeLine.remove(old);
+					if (!!old) TimeLine.remove(old);
 					TimeLine.push(item);
 				}
 			});
@@ -329,5 +374,5 @@ global.ContentUpdated = async (node, hash, path) => {
 
 	TimeLine.sort((a, b) => b.publishAt - a.publishAt);
 
-	IO.broadcast('ContentUpdate');
+	IO.broadcast('TimelineUpdated', TimeLine);
 };

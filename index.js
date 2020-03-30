@@ -14,6 +14,12 @@ const IPFS = require('./ipfs');
 const CLP = _('CL.CLP');
 const setStyle = _('CL.SetStyle');
 
+process.on('unhandledRejection', (reason, promise) => {
+	console.log('xxxxxxxxxxxxxxxxxxxx');
+	console.log(reason);
+	console.log(promise);
+});
+
 // 系统参数
 
 const CSP_Name = "内容星门（Contverse StarPort）";

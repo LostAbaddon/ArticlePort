@@ -58,7 +58,7 @@ export default {
 	transition: all 250ms ease-in-out;
 }
 #LoadMask.shown {
-	background-color: rgba(22, 24, 35, 0.3);
+	background-color: rgba(22, 24, 35, 0.6);
 	pointer-events: auto;
 }
 #LoadMask .van-loading {
@@ -75,5 +75,6 @@ export default {
 }
 #LoadMask .van-loading .van-loading__text {
 	font-size: 20px;
+	color: white;
 }
 </style>

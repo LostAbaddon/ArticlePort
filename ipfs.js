@@ -1,27 +1,56 @@
 const Path = require('path');
+const FS = require('fs');
 const { spawn } = require('child_process');
 
 const RetryDelay = 1000 * 60 * 10;
 const UpdateDelay = 1000 * 60 * 3;
+const ResponsingTimeout = 1000 * 3;
+const PublishTimeout = 1000 * 60 * 3;
 
 const IPFS = {};
 const watchList = {};
 const publishPending = [];
 const currentPending = [];
+const FolderPath = Path.join(process.cwd(), 'field');
 var lastHash = '';
 
-const runCMD = (cmd, onData, onError, onWarning) => new Promise(res => {
+const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => new Promise(res => {
+	var closer = () => {
+		console.log(...cmd);
+		try {
+			worker.kill('SIGINT');
+		} catch {}
+		if (!!onError) onError('请求超时，请稍后再试……');
+		res();
+	};
+	var timeouter;
+	if (timeout > 0) timeouter = setTimeout(closer, timeout);
 	var worker = spawn(IPFS.cmd, [...cmd, '--config=' + IPFS.path]);
 	worker.stdout.on('data', data => {
+		if (timeout > 0) {
+			clearTimeout(timeouter);
+			timeouter = setTimeout(closer, timeout);
+		}
 		if (!!onData) onData(data.toString());
 	});
 	worker.stdout.on('error', err => {
+		if (timeout > 0) {
+			clearTimeout(timeouter);
+			timeouter = setTimeout(closer, timeout);
+		}
 		if (!!onError) onError(err.toString());
 	});
 	worker.stderr.on('data', data => {
+		if (timeout > 0) {
+			clearTimeout(timeouter);
+			timeouter = setTimeout(closer, timeout);
+		}
 		if (!!onWarning) onWarning(data.toString());
 	});
 	worker.on('close', data => {
+		if (timeout > 0) clearTimeout(timeouter);
+		timeouter = null;
+		closer = null
 		res(data);
 	});
 	return worker;
@@ -57,6 +86,15 @@ const resolveAndFetch = async node => {
 	}
 	setTimeout(() => resolveAndFetch(node), UpdateDelay);
 };
+const getLocalFile = filepath => new Promise((res, rej) => {
+	FS.readFile(filepath, 'utf8', (err, data) => {
+		if (!!err) {
+			return rej(err);
+		}
+		data = data.toString();
+		res(data);
+	});
+});
 
 IPFS.start = port => new Promise(res => {
 	if (!!IPFS.ipfs) return;
@@ -81,33 +119,45 @@ IPFS.start = port => new Promise(res => {
 		log => {
 			console.log(log.replace(/^\n+|\n+$/g, ''));
 			if (log.indexOf('Daemon is ready') >= 0) res();
-		}, console.error, console.warn
+		}, console.error, console.warn, -1
 	);
 });
 IPFS.initUser = () => new Promise(async (res, rej) => {
 	var finished = false;
-	await runCMD(
-		['init'], null,
-		err => {
-			finished = true;
-			rej(err);
-		}
-	);
+	try {
+		await runCMD(
+			['init'], null,
+			err => {
+				finished = true;
+				rej(err);
+			}
+		);
+	}
+	catch (err) {
+		rej(err);
+		return;
+	}
 	if (finished) return;
 	res();
 });
 IPFS.uploadFolder = path => new Promise(async (res, rej) => {
 	var logs = '', finished = false;
-	await runCMD(
-		['add', '-r', path],
-		data => {
-			logs += data + '\n';
-		},
-		err => {
-			finished = true;
-			rej(err);
-		}
-	);
+	try {
+		await runCMD(
+			['add', '-r', path],
+			data => {
+				logs += data + '\n';
+			},
+			err => {
+				finished = true;
+				rej(err);
+			}
+		);
+	}
+	catch (err) {
+		rej(err);
+		return;
+	}
 	if (finished) return;
 
 	var hashes = {}
@@ -125,43 +175,9 @@ IPFS.uploadFolder = path => new Promise(async (res, rej) => {
 });
 IPFS.uploadFile = file => new Promise(async (res, rej) => {
 	var logs = '', finished = false;
-	await runCMD(
-		['add', file],
-		data => {
-			logs += data + '\n';
-		},
-		err => {
-			finished = true;
-			rej(err);
-		}
-	);
-	if (finished) return;
-
-	var hash = logs.split('added').filter(l => l.length > 0).map(l => l.trim().replace(/\n+/g, '').split(/ +/))[0];
-	if (!hash) return res(null);
-	res(hash[0]);
-});
-IPFS.downloadFolder = (cid, hash) => new Promise(async (res, rej) => {
-	var logs = '', finished = false;
-	var path = Path.join(process.cwd(), 'field/' + cid);
-	await runCMD(
-		['get', hash, '--output=' + path],
-		data => {
-			logs += data + '\n';
-		},
-		err => {
-			finished = true;
-			rej(err);
-		}
-	);
-	if (finished) return;
-	res(path);
-});
-IPFS.publish = hash => new Promise(async (res, rej) => {
-	var logs = '', finished = false;
-	if (publishPending.length === 0) {
+	try {
 		await runCMD(
-			['name', 'publish', hash, '--allow-offline'],
+			['add', file],
 			data => {
 				logs += data + '\n';
 			},
@@ -170,6 +186,100 @@ IPFS.publish = hash => new Promise(async (res, rej) => {
 				rej(err);
 			}
 		);
+	}
+	catch (err) {
+		rej(err);
+		return;
+	}
+	if (finished) return;
+
+	var hash = logs.split('added').filter(l => l.length > 0).map(l => l.trim().replace(/\n+/g, '').split(/ +/))[0];
+	if (!hash) return res(null);
+	res(hash[0]);
+});
+IPFS.downloadFolder = (cid, hash) => new Promise(async (res, rej) => {
+	var logs = '', finished = false;
+	var path = Path.join(FolderPath, cid);
+	try {
+		await runCMD(
+			['get', hash, '--output=' + path],
+			data => {
+				logs += data + '\n';
+			},
+			err => {
+				finished = true;
+				rej(err);
+			}
+		);
+	}
+	catch (err) {
+		rej(err);
+		return;
+	}
+	if (finished) return;
+	res(path);
+});
+IPFS.downloadFile = hash => new Promise(async (res, rej) => {
+	var filepath = Path.join(FolderPath, hash);
+	var file;
+	try {
+		file = await getLocalFile(filepath);
+	}
+	catch {
+		file = null;
+	}
+	if (!!file) return res(file);
+
+	var logs = '', finished = false;
+	try {
+		await runCMD(
+			['get', hash, '--output=' + filepath],
+			data => {
+				console.log('::::::', data);
+				logs += data + '\n';
+			},
+			err => {
+				console.error('XXXXXX', err);
+				finished = true;
+				rej(err);
+			},
+			warn => {
+				console.warn('WWWWWW', warn);
+			}
+		);
+	}
+	catch (err) {
+		rej(err);
+		return;
+	}
+	if (finished) return;
+	try {
+		file = await getLocalFile(filepath);
+	}
+	catch {
+		file = null;
+	}
+	return res(file);
+});
+IPFS.publish = hash => new Promise(async (res, rej) => {
+	var logs = '', finished = false;
+	if (publishPending.length === 0) {
+		try {
+			await runCMD(
+				['name', 'publish', hash, '--allow-offline'],
+				data => {
+					logs += data + '\n';
+				},
+				err => {
+					finished = true;
+					rej(err);
+				}, null, PublishTimeout
+			);
+		}
+		catch (err) {
+			rej(err);
+			return;
+		}
 		if (finished) return;
 		logs = logs.split(':')[0].replace('Published to ', '');
 		res(logs);
@@ -189,16 +299,22 @@ IPFS.publish = hash => new Promise(async (res, rej) => {
 });
 IPFS.resolve = hash => new Promise(async (res, rej) => {
 	var logs = '', finished = false;
-	await runCMD(
-		['name', 'resolve', hash],
-		data => {
-			logs += data + '\n';
-		},
-		err => {
-			finished = true;
-			rej(err);
-		}
-	);
+	try {
+		await runCMD(
+			['name', 'resolve', hash],
+			data => {
+				logs += data + '\n';
+			},
+			err => {
+				finished = true;
+				rej(err);
+			}
+		);
+	}
+	catch (err) {
+		rej(err);
+		return;
+	}
 	if (finished) return;
 	logs = logs.trim().replace(/^\n+|\n+$/g, '').trim().replace(/^([\\\/])ipfs\1/i, '');
 	res(logs);

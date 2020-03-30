@@ -2,6 +2,7 @@
 	<div class="toolbar no-select">
 		<div class="siteName"><img src="android-chrome-192x192.png"><span>{{title}}</span></div>
 		<div class="ownerName">欢迎<span class="owner">{{ownerName}}<span class="ownerHint">{{ownerID}}</span></span></div>
+		<div class="articleTitle">{{articleTitle}}</div>
 		<div class="configer cursor" @click="toggleMenu"><i class="fa fas fa-cog"></i></div>
 	</div>
 </template>
@@ -17,12 +18,19 @@ export default {
 			title: config.title,
 			ownerName: '',
 			ownerID: '',
+			articleTitle: ''
 		}
 	},
 	mounted () {
 		eventBus.on('updateNodeInfo', info => {
 			this.ownerName = info.name;
 			this.ownerID = info.id;
+		});
+		eventBus.on('showArticleTitle', title => {
+			this.articleTitle = title;
+		});
+		eventBus.on('hideArticleTitle', title => {
+			this.articleTitle = '';
 		});
 	},
 	methods: {
@@ -92,6 +100,22 @@ export default {
 	opacity: 1;
 	pointer-events: auto;
 }
+.toolbar .articleTitle {
+	position: absolute;
+	display: block;
+	top: 0px;
+	left: 50px;
+	right: 50px;
+	font-size: 26px;
+	font-weight: bolder;
+	line-height: 50px;
+	text-align: center;
+	vertical-align: top;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	transition: left 250ms ease-in-out;
+}
 .toolbar .configer {
 	position: absolute;
 	top: 0px;
@@ -100,5 +124,10 @@ export default {
 	padding-left: 20px;
 	padding-right: 20px;
 	line-height: 50px;
+}
+@media(max-width: 1500px) {
+	.toolbar .articleTitle {
+		left: 350px;
+	}
 }
 </style>

@@ -5,17 +5,14 @@ Responsor.push({
 	callback: (data, socket, event) => {
 		socket.send('RequestStarPortInfo', {
 			name: global.NodeConfig.name,
-			id: global.NodeConfig.node.id
+			id: global.NodeConfig.node.id,
+			timeline: global.ContentManager.getTimeline(data)
 		});
 	}
 });
 Responsor.push({
 	event: 'GetNodeList',
 	callback: (data, socket, event) => {
-		var info = {
-			nodeinfo: global.NodeManager.getNodeList(),
-			timeline: global.ContentManager.getTimeline()
-		};
 		socket.send('GetNodeList', global.NodeManager.getNodeList());
 	}
 });
@@ -45,6 +42,26 @@ Responsor.push({
 			return;
 		}
 		socket.send('RemoveNode', global.NodeManager.getNodeList());
+	}
+});
+Responsor.push({
+	event: 'GetTimeline',
+	callback: (data, socket, event) => {
+		socket.send('TimelineUpdated', global.ContentManager.getTimeline(data));
+	}
+});
+Responsor.push({
+	event: 'GetArticleByID',
+	callback: async (data, socket, event) => {
+		var article;
+		try {
+			article = await global.ContentManager.get(data.channel, data.id);
+		}
+		catch (err) {
+			socket.send('GetArticleByID', null, err.message);
+			return;
+		}
+		socket.send('GetArticleByID', article);
 	}
 });
 

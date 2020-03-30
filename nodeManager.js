@@ -80,12 +80,17 @@ Manager.removeNode = node => new Promise((res, rej) => {
 	updateConnectionsAndPublish();
 	IPFS.unsubscribe(node);
 });
-Manager.changeNodeName = (node, name) => new Promise(res => {
+Manager.changeNodeName = (node, name) => new Promise(async res => {
 	var old = nodeList[node];
 	if (old === name) return res();
 	nodeList[node] = name;
 
-	updateConnectionsAndPublish();
+	await updateConnectionsAndPublish();
+	res();
 });
+Manager.getNodeName = node => {
+	if (node === global.NodeConfig.node.id) return global.NodeConfig.name;
+	return nodeList[node] || '佚名'
+};
 
 global.NodeManager = Manager;

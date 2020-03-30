@@ -2,6 +2,7 @@
 	<div id="app">
 		<toolbar />
 		<showroom />
+		<article-container />
 		<configuration />
 		<node-manager />
 		<loadmask />
@@ -15,6 +16,7 @@ import loadmask from './components/loadMask.vue';
 import popup from './components/popup.vue';
 import toolbar from './components/toolbar.vue';
 import showroom from './components/showroom.vue';
+import article from './components/article.vue';
 import configuration from './components/configuration.vue';
 import nodeManager from './components/nodeManager.vue';
 
@@ -29,6 +31,7 @@ export default {
 		popup,
 		toolbar,
 		showroom,
+		articleContainer: article,
 		configuration,
 		nodeManager
 	},
@@ -39,11 +42,18 @@ export default {
 				eventBus.emit('popupShow', '出错', err);
 				return;
 			}
-			eventBus.emit('updateNodeInfo', msg);
+			eventBus.emit('updateNodeInfo', {
+				name: msg.name,
+				id: msg.id
+			});
+			eventBus.emit('updateTimeline', msg.timeline);
+		});
+		this.$net.register('TimelineUpdated', (msg, err, event) => {
+			eventBus.emit('updateTimeline', msg);
 		});
 
 		eventBus.emit('loadStart');
-		this.$net.emit('RequestStarPortInfo');
+		this.$net.emit('RequestStarPortInfo', ['ArticleMarket', 'ArticleComments']);
 	},
 	methods: {
 	}

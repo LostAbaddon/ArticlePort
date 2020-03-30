@@ -10,13 +10,16 @@ _("Utils").preparePath(FieldPath, ok => {
 var storagePath;
 
 const callback = (data, socket, event) => {
+	if (!data.id) return;
+
 	storagePath = storagePath || Path.join(__dirname, '../../' + global.NodeConfig.storage);
 
 	var info = {}, file = data.file, channel = data.channel;
 	info.id = data.id;
-	info.fingerprint = data.fingerprint;
-	info.title = data.title;
+	info.fingerprint = data.fingerprint || '';
+	info.title = data.title || '无名之文';
 	info.author = data.author || NodeConfig.name;
+	info.description = data.description || '';
 	info.publisher = NodeConfig.node.id;
 	info.publishAt = Date.now();
 
