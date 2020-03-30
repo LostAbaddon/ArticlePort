@@ -31,7 +31,7 @@ export default {
 			this.onlyMask = true;
 		});
 		eventBus.on('hideMask', () => {
-			this.show = true;
+			this.show = false;
 			eventBus.emit('maskHidden');
 		});
 	},

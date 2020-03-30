@@ -42,10 +42,6 @@ export default {
 				else item.action = '发布';
 				if (!item.description) item.description = '无简介……';
 			});
-			list = [...list, ...list];
-			list = [...list, ...list];
-			list = [...list, ...list];
-			list = [...list, ...list];
 			this.articles.splice(0, this.articles.length, ...list);
 		});
 	},
@@ -95,7 +91,8 @@ export default {
 	display: flex;
 	box-sizing: border-box;
 	flex-flow: column wrap;
-	justify-content: space-around;
+	justify-content: space-between;
+	align-content: start;
 	top: 50px;
 	bottom: 10px;
 	left: 10px;

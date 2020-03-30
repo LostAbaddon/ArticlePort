@@ -71,7 +71,14 @@ const clp = CLP({
 		// 启动 IPFS
 		actions.push(IPFS.start(config.port - 4000));
 
-		await Promise.all(actions);
+		try {
+			await Promise.all(actions);
+		}
+		catch (err) {
+			console.error('核心组件启动失败：\n' + err.message);
+			process.exit();
+			return;
+		}
 	}
 
 	actions = [];

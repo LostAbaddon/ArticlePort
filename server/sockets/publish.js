@@ -45,11 +45,18 @@ const callback = (data, socket, event) => {
 			console.error('将文件写入 IPFS 失败：' + data.title + ' / ' + data.id);
 			return;
 		}
+		console.log('新文件上传到星网成功：' + result);
 		info.ipfs = result;
 		ContentManager.set(channel, info.id, info);
 		await ContentManager.flush(channel);
 
-		result = await IPFS.uploadFolder(storagePath);
+		try {
+			result = await IPFS.uploadFolder(storagePath);
+		}
+		catch (err) {
+			console.error('更新目录失败：' + err);
+			return;
+		}
 		console.log('新内容站哈希: ' + result);
 		global.NodeConfig.hash = result;
 		socket.emit('__message__', {
@@ -66,7 +73,7 @@ const callback = (data, socket, event) => {
 		try {
 			result = await IPFS.publish(result);
 		} catch (err) {
-			console.error(err);
+			console.error('发布更新失败：' + err);
 			return;
 		}
 		if (!result) return;

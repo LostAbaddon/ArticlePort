@@ -250,6 +250,7 @@ Manager.set = (channel, id, info) => {
 		bookShelves[channel] = bookShelf;
 	}
 
+	info.channel = channel;
 	bookShelf.storage.set(id, info);
 	var old = ContentMap[id];
 	ContentMap[id] = info;
@@ -282,15 +283,12 @@ Manager.get = (channel, id) => new Promise(async (res, rej) => {
 	};
 	var content;
 	try {
-		console.log('>>>>', info.ipfs);
 		content = await IPFS.downloadFile(info.ipfs);
 	}
 	catch (err) {
-		console.error('XXXX', err);
 		rej(err);
 		return;
 	}
-	console.log('VVVV done');
 	article.content = content;
 	res(article);
 });

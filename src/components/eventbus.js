@@ -55,6 +55,7 @@ export default {
 		if (!cbs) return;
 		var current = [...cbs];
 		cbs = cbs.filter(cb => !cb[1]);
+		EventMap.set(event, cbs);
 		current.forEach(cb => {
 			cb[0](...data);
 		});
@@ -64,6 +65,7 @@ export default {
 		if (!cbs) return res();
 		var current = [...cbs];
 		cbs = cbs.filter(cb => !cb[1]);
+		EventMap.set(event, cbs);
 		for (let cb of current) {
 			await cb[0](...data);
 		}

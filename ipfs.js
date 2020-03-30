@@ -4,7 +4,7 @@ const { spawn } = require('child_process');
 
 const RetryDelay = 1000 * 60 * 10;
 const UpdateDelay = 1000 * 60 * 3;
-const ResponsingTimeout = 1000 * 3;
+const ResponsingTimeout = 1000 * 30;
 const PublishTimeout = 1000 * 60 * 3;
 
 const IPFS = {};
@@ -16,11 +16,10 @@ var lastHash = '';
 
 const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => new Promise(res => {
 	var closer = () => {
-		console.log(...cmd);
 		try {
 			worker.kill('SIGINT');
 		} catch {}
-		if (!!onError) onError('请求超时，请稍后再试……');
+		if (!!onError) onError(new Error('请求超时，请稍后再试……'));
 		res();
 	};
 	var timeouter;
@@ -63,20 +62,31 @@ const changeMultiAddressPort = (addr, port) => {
 const resolveAndFetch = async node => {
 	console.log('获取节点更新：' + node);
 	if (!watchList[node]) return;
-	var hash = await IPFS.resolve(node);
+	var hash;
+	try {
+		hash = await IPFS.resolve(node);
+	}
+	catch (err) {
+		setTimeout(() => resolveAndFetch(node), RetryDelay);
+		return;
+	}
 	console.log('获取节点新哈希：' + node + ' ==> ' + hash);
 	var info = watchList[node];
 	if (!info) return;
 	if (!hash) {
-		setTimeout(() => {
-			if (!watchList[node]) return;
-			resolveAndFetch(node);
-		}, RetryDelay);
+		setTimeout(() => resolveAndFetch(node), RetryDelay);
 		return;
 	}
 	if (info.hash !== hash) {
 		info.hash = hash;
-		let path = await IPFS.downloadFolder(node, hash);
+		let path;
+		try {
+			path = await IPFS.downloadFolder(node, hash);
+		}
+		catch (err) {
+			setTimeout(() => resolveAndFetch(node), RetryDelay);
+			return;
+		}
 		console.log('获取节点内容：' + path);
 		info.stamp = Date.now();
 		global.ContentUpdated(node, hash, path);
@@ -235,16 +245,11 @@ IPFS.downloadFile = hash => new Promise(async (res, rej) => {
 		await runCMD(
 			['get', hash, '--output=' + filepath],
 			data => {
-				console.log('::::::', data);
 				logs += data + '\n';
 			},
 			err => {
-				console.error('XXXXXX', err);
 				finished = true;
 				rej(err);
-			},
-			warn => {
-				console.warn('WWWWWW', warn);
 			}
 		);
 	}
@@ -289,7 +294,12 @@ IPFS.publish = hash => new Promise(async (res, rej) => {
 		if (publishPending.length > 0) {
 			publishPending.forEach(r => currentPending.push(r));
 			publishPending.splice(0, publishPending.length);
-			await IPFS.publish(lastHash);
+			try {
+				await IPFS.publish(lastHash);
+			}
+			catch (err) {
+				console.error('发布更新失败：' + err.message);
+			}
 		}
 	}
 	else {

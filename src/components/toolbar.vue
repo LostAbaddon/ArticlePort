@@ -3,6 +3,7 @@
 		<div class="siteName"><img src="android-chrome-192x192.png"><span>{{title}}</span></div>
 		<div class="ownerName">欢迎<span class="owner">{{ownerName}}<span class="ownerHint">{{ownerID}}</span></span></div>
 		<div class="articleTitle">{{articleTitle}}</div>
+		<div class="closer cursor" @click="closeArticle" :shown="!!articleTitle ? 'true' : 'false'"><i class="fa fas fa-window-close"></i></div>
 		<div class="configer cursor" @click="toggleMenu"><i class="fa fas fa-cog"></i></div>
 	</div>
 </template>
@@ -36,6 +37,9 @@ export default {
 	methods: {
 		toggleMenu () {
 			eventBus.emit('toggleConfigMenu');
+		},
+		closeArticle () {
+			eventBus.emit('hideArticle');
 		}
 	}
 };
@@ -116,14 +120,28 @@ export default {
 	overflow: hidden;
 	transition: left 250ms ease-in-out;
 }
-.toolbar .configer {
+.toolbar .configer,
+.toolbar .closer {
 	position: absolute;
 	top: 0px;
-	right: 0px;
 	height: 50px;
 	padding-left: 20px;
 	padding-right: 20px;
 	line-height: 50px;
+}
+.toolbar .configer {
+	right: 0px;
+}
+.toolbar .closer {
+	right: 100px;
+	opacity: 0;
+	pointer-events: none;
+	transition: all 250ms ease-in-out;
+}
+.toolbar .closer[shown="true"] {
+	right: 50px;
+	opacity: 1;
+	pointer-events: auto;
 }
 @media(max-width: 1500px) {
 	.toolbar .articleTitle {

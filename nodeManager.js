@@ -19,10 +19,23 @@ const updateConnectionsAndPublish = () => new Promise((res, rej) => {
 	});
 });
 const saveAndPublish = () => new Promise(async res => {
-	var hash = await IPFS.uploadFolder(storagePath);
+	var hash;
+	try {
+		hash = await IPFS.uploadFolder(storagePath);
+	}
+	catch (err) {
+		console.error('更新目录失败：' + err.message);
+		return;
+	}
 	console.log('更新内容星站：' + hash);
 	res();
-	hash = await IPFS.publish(hash);
+	try {
+		hash = await IPFS.publish(hash);
+	}
+	catch (err) {
+		console.error('发布更新失败：' + err.message);
+		return;
+	}
 	console.log('星站内容已更新！', hash);
 });
 
