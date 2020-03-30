@@ -21,7 +21,8 @@ export default {
 				eventBus.emit('popupShow', '出错', err);
 				return;
 			}
-			eventBus.emit('showNodeManager', msg);
+			eventBus.emit('showNodeManager', msg.nodeinfo);
+			console.log(msg.timeline);
 		});
 		eventBus.on('toggleConfigMenu', info => {
 			if (this.show) {

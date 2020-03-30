@@ -12,6 +12,10 @@ Responsor.push({
 Responsor.push({
 	event: 'GetNodeList',
 	callback: (data, socket, event) => {
+		var info = {
+			nodeinfo: global.NodeManager.getNodeList(),
+			timeline: global.ContentManager.getTimeline()
+		};
 		socket.send('GetNodeList', global.NodeManager.getNodeList());
 	}
 });

@@ -9,7 +9,9 @@ const FlushCount = 10;
 const bookShelves = {};
 const Manager = {};
 const TimeLine = [];
+const ContentMap = {};
 var storagePath = '';
+var localStorage = '';
 
 var updateCount = 0, lastUpdate = Date.now();
 const Updater = (channel, cb) => {
@@ -29,7 +31,7 @@ const Updater = (channel, cb) => {
 		content.sort((a, b) => b.publishAt - a.publishAt);
 		content = {content};
 		content.lastUpdate = now;
-		let folderPath = Path.join(__dirname, global.NodeConfig.storage + '/' + channel);
+		let folderPath = Path.join(localStorage, channel);
 		prepare(folderPath, ok => {
 			if (!ok) {
 				console.error('频道目录（' + folderPath + '）创建失败！');
@@ -108,7 +110,20 @@ const ReadTimeline = path => new Promise(res => {
 					data = data.content;
 					data.forEach(item => {
 						item.type = type;
-						TimeLine.push(item);
+						item.publishAt = item.publishAt || 1;
+						var old = ContentMap[item.id];
+						if (!old) {
+							ContentMap[item.id] = item;
+							TimeLine.push(item);
+						}
+						else {
+							old.publishAt = old.publishAt || 0;
+							if (item.publishAt > old.publishAt) {
+								let idx = TimeLine.indexOf(old);
+								TimeLine.splice(idx, 1, item);
+								ContentMap[item.id] = item;
+							}
+						}
 					});
 					count --;
 					if (count === 0) res();
@@ -119,8 +134,7 @@ const ReadTimeline = path => new Promise(res => {
 });
 const ReadMyOwnTimeline = () => new Promise(async res => {
 	// 建立本地自己账号的 TimeLine
-	var path = Path.join(process.cwd(), global.NodeConfig.storage);
-	await ReadTimeline(path);
+	await ReadTimeline(localStorage);
 	res();
 });
 const ReadLocalTimeline = () => new Promise(async res => {
@@ -175,20 +189,46 @@ const saveFile = (path, content) => new Promise((res, rej) => {
 		else res();
 	})
 });
+const readLocalStorage = () => new Promise(async res => {
+	var subFolders = await getAllSubFolders(localStorage);
+	var count = subFolders.length;
+	if (count === 0) return res();
+	subFolders.forEach(async path => {
+		var channel = path.replace(localStorage, '').replace(/^[\\\/]+/, '');
+		var filepath = Path.join(path, 'index.json');
+		var content = await getJSON(filepath);
+		if (!!content) {
+			let bookShelf = {
+				version: content.version,
+				lastUpdate: content.lastUpdate,
+				storage: new Map()
+			};
+			(content.content || []).forEach(item => {
+				bookShelf.storage.set(item.id, item);
+			});
+			bookShelves[channel] = bookShelf;
+		}
+		count --;
+		if (count === 0) res();
+	});
+});
 
 Manager.init = () => new Promise(async res => {
 	IO = require('./server/socket');
 	prepare = _("Utils").preparePath;
-
+	localStorage = Path.join(process.cwd(), global.NodeConfig.storage);
 	storagePath = Path.join(process.cwd(), 'storage');
-	await prepare(storagePath);
+
+	await Promise.all([
+		readLocalStorage(),
+		prepare(storagePath)
+	]);
 
 	var actions = [];
 	actions.push(ReadMyOwnTimeline());
 	actions.push(ReadLocalTimeline());
 	await Promise.all(actions);
 	TimeLine.sort((a, b) => b.publishAt - a.publishAt);
-	console.log(TimeLine);
 
 	res();
 });
@@ -233,7 +273,6 @@ Manager.getTimeline = () => TimeLine;
 global.ContentManager = Manager;
 
 global.ContentUpdated = async (node, hash, path) => {
-	console.log(">>>>", path);
 	var sPath = Path.join(storagePath, node);
 	await prepare(sPath);
 
@@ -274,6 +313,10 @@ global.ContentUpdated = async (node, hash, path) => {
 				var old = list[id];
 				if (!old || item.publishAt > old.publishAt) {
 					list[id] = item;
+					old = ContentMap[id];
+					ContentMap[id] = item;
+					TimeLine.remove(old);
+					TimeLine.push(item);
 				}
 			});
 			list = Object.keys(list).map(id => list[id]);
@@ -284,13 +327,7 @@ global.ContentUpdated = async (node, hash, path) => {
 		res();
 	})));
 
-	TimeLine.splice(0, TimeLine.length);
-	await Promise.all([
-		ReadMyOwnTimeline(),
-		ReadLocalTimeline()
-	]);
 	TimeLine.sort((a, b) => b.publishAt - a.publishAt);
-	console.log(TimeLine);
 
-	IO.broadcast('ContentUpdate', TimeLine);
+	IO.broadcast('ContentUpdate');
 };
