@@ -3,6 +3,7 @@
 		<toolbar />
 		<showroom />
 		<article-container />
+		<image-wall />
 		<configuration />
 		<node-manager />
 		<loadmask />
@@ -17,6 +18,7 @@ import popup from './components/popup.vue';
 import toolbar from './components/toolbar.vue';
 import showroom from './components/showroom.vue';
 import article from './components/article.vue';
+import imageWall from './components/imagewall.vue';
 import configuration from './components/configuration.vue';
 import nodeManager from './components/nodeManager.vue';
 
@@ -32,6 +34,7 @@ export default {
 		toolbar,
 		showroom,
 		articleContainer: article,
+		imageWall,
 		configuration,
 		nodeManager
 	},

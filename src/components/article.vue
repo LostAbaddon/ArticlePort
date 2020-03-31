@@ -6,6 +6,17 @@
 <script>
 import eventBus from './eventbus.js';
 
+var testContent;
+var xhr = new XMLHttpRequest();
+xhr.open('get', './markup/demo.mu', true);
+xhr.onreadystatechange = () => {
+	if (xhr.readyState == 4) {
+		if (xhr.status === 0 || xhr.response === '') return;
+		testContent = xhr.responseText;
+	}
+};
+xhr.send();
+
 const newEle = (tagName, classList, id) => {
 	var ele = document.createElement(tagName);
 	if (!!id) ele.id = id;
@@ -48,6 +59,7 @@ export default {
 				return;
 			}
 			eventBus.emit('showArticleTitle', data.title);
+			data.content = testContent;
 			var content = MarkUp.fullParse(data.content, {
 				toc: true,
 				showtitle: false,
@@ -106,6 +118,7 @@ export default {
 	},
 	methods: {
 		num2time: num => {
+			if (!num) return '猴年马月牛日 龙点蛇分鸡秒';
 			var time = new Date(num);
 			var Y = (time.getYear() + 1900) + '';
 			var M = (time.getMonth() + 1) + '';
@@ -128,7 +141,11 @@ export default {
 			var ele = evt.target;
 			if (!ele) return;
 			if (!ele.tagName) return;
-			if (ele.tagName.toLowerCase() !== 'li') return;
+
+			var tag = ele.tagName.toLowerCase();
+			if (this.showImage(ele)) return;
+
+			if (tag !== 'li') return;
 			if (!ele.classList.contains('history-item')) return;
 			var id = ele.getAttribute('article');
 			var history = ele.getAttribute('name');
@@ -138,6 +155,63 @@ export default {
 				id: id,
 				ipfs: history
 			});
+		},
+		getImageContainer (ele) {
+			var tag = ele.tagName.toLowerCase();
+			if (tag === 'img') {
+				ele = ele.parentElement;
+				tag = ele.tagName.toLowerCase();
+			}
+			if (tag === 'figure' || tag === 'figcaption') {
+				ele = ele.parentElement;
+				tag = ele.tagName.toLowerCase();
+			}
+			if (tag === 'div') {
+				if (!(ele.classList.contains('resource') && ele.classList.contains('image'))) return null;
+			}
+			else return null;
+			var parent = ele.parentElement;
+			if (parent.classList.contains('image-wall')) {
+				return [ele, parent];
+			}
+			return [ele, null];
+		},
+		showImage (ele) {
+			var container = this.getImageContainer(ele);
+			if (!container) return false;
+			var imageWall = container[1];
+			container = container[0];
+			var index = 0;
+			if (!!imageWall) {
+				let list = [];
+				let target = container.querySelector('img');
+				imageWall.querySelectorAll('div.image').forEach((pic, i) => {
+					var img = pic.querySelector('img');
+					if (!img) return;
+					if (img === target) index = i;
+					img = img.src;
+					var cap = pic.querySelector('figcaption');
+					if (!!cap) cap = cap.innerHTML;
+					else cap = '';
+					list.push({
+						image: img,
+						caption: cap
+					});
+				});
+				imageWall = list;
+			}
+			else {
+				let picture = container.querySelector('img').src;
+				let cap = container.querySelector('figcaption');
+				if (!!cap) cap = cap.innerHTML;
+				else cap = '';
+				imageWall = [{
+					image: picture,
+					caption: cap
+				}];
+			}
+			eventBus.emit('showImageWall', imageWall, index);
+			return true;
 		}
 	}
 };
@@ -235,5 +309,11 @@ export default {
 .article-container > article > section.history-versions li {
 	cursor: pointer;
 	user-select: none;
+}
+.article-container > article div.resource.image {
+	cursor: pointer;
+}
+.article-container > article div.image-wall div.resource.image {
+	width: 100%;
 }
 </style>

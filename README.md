@@ -18,10 +18,11 @@
 
 1.	请安装 0.4.23 或以上版本的 IPFS
 2.	请安装 12.0.0 或以上版本的 Node.js
-3.	在 config.json 中的 cmd 字段设置 IPFS 的执行路径
-4.	执行 index.js，开始使用本系统（执行 node index.js -h 可查看所有可用命令与说明）
-5.	配合 [ArticleUtils 浏览器插件](https://github.com/LostAbaddon/ArticleUtils)可进行本地文章的编写与修改，并能发布到本系统中
-6.	打开 localhost:8001（具体端口号可在 config.json 中配置）可查看内容并进行设置
+3.	执行 npm install 进行项目依赖安装
+4.	在 config.json 中的 cmd 字段设置 IPFS 的执行路径
+5.	执行 index.js，开始使用本系统（执行 node index.js -h 可查看所有可用命令与说明）
+6.	配合 [ArticleUtils 浏览器插件](https://github.com/LostAbaddon/ArticleUtils)可进行本地文章的编写与修改，并能发布到本系统中
+7.	打开 localhost:8001（具体端口号可在 config.json 中配置）可查看内容并进行设置
 
 ## 说明
 
@@ -42,7 +43,6 @@
 ## TODO
 
 +	前端工作
-	-	图片与图片墙的呈现优化
 +	后端工作
 	-	完善正式发布
 +	链端工作
