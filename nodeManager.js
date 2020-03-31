@@ -96,7 +96,7 @@ Manager.getNodeList = () => {
 		return { name: nodeList[id], id };
 	});
 };
-Manager.addNode = node => new Promise((res, rej) => {
+Manager.addNode = node => new Promise(async (res, rej) => {
 	var old = !!nodeList[node];
 	if (old) return res();
 	nodeList[node] = node;
@@ -110,7 +110,7 @@ Manager.addNode = node => new Promise((res, rej) => {
 	}
 	res();
 });
-Manager.removeNode = node => new Promise((res, rej) => {
+Manager.removeNode = node => new Promise(async (res, rej) => {
 	var old = !!nodeList[node];
 	if (!old) return res();
 	delete nodeList[node];
