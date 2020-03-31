@@ -13,7 +13,13 @@ const updateConnectionsAndPublish = () => new Promise((res, rej) => {
 			rej(err);
 		}
 		else {
-			await saveAndPublish();
+			try {
+				await saveAndPublish();
+			}
+			catch (err) {
+				rej(err);
+				return;
+			}
 			res();
 		}
 	});
@@ -75,7 +81,12 @@ Manager.init = () => new Promise(async (res, rej) => {
 				rej(err);
 				return;
 			}
-			await saveAndPublish();
+			try {
+				await saveAndPublish();
+			}
+			catch (err) {
+				console.error('保存并发布信息时出错：' + err.message);
+			}
 			res();
 		});
 	});
@@ -90,23 +101,40 @@ Manager.addNode = node => new Promise((res, rej) => {
 	if (old) return res();
 	nodeList[node] = node;
 
-	updateConnectionsAndPublish();
 	IPFS.subscribe(node);
+	try {
+		await updateConnectionsAndPublish();
+	}
+	catch (err) {
+		console.error('添加节点（' +  node + '）时：' + err.message);
+	}
+	res();
 });
 Manager.removeNode = node => new Promise((res, rej) => {
 	var old = !!nodeList[node];
 	if (!old) return res();
 	delete nodeList[node];
 
-	updateConnectionsAndPublish();
 	IPFS.unsubscribe(node);
+	try {
+		await updateConnectionsAndPublish();
+	}
+	catch (err) {
+		console.error('删除节点（' +  node + '）时：' + err.message);
+	}
+	res();
 });
 Manager.changeNodeName = (node, name) => new Promise(async res => {
 	var old = nodeList[node];
 	if (old === name) return res();
 	nodeList[node] = name;
 
-	await updateConnectionsAndPublish();
+	try {
+		await updateConnectionsAndPublish();
+	}
+	catch (err) {
+		console.error('修改节点名（' + node + '）字时出错：' + err.message);
+	}
 	res();
 });
 Manager.getNodeName = node => {
