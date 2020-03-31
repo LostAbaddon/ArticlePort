@@ -60,7 +60,7 @@ const changeMultiAddressPort = (addr, port) => {
 	return addr.join('/');
 };
 const resolveAndFetch = async node => {
-	console.log('获取节点更新：' + node);
+	console.log('开始获取节点更新：' + node);
 	if (!watchList[node]) return;
 	var hash;
 	try {

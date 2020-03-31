@@ -314,6 +314,7 @@ Manager.get = (channel, id, ipfs) => new Promise(async (res, rej) => {
 		rej(err);
 		return;
 	}
+	console.log('从星网获取文件：' + ipfs);
 	article.content = content;
 	res(article);
 });
