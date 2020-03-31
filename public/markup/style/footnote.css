@@ -26,6 +26,7 @@
 	font-size: 15px;
 	line-height: 22px;
 	color: rgb(233, 231, 239);
+	word-break: break-word;
 }
 #footnoteFrame p.note-title a,
 #footnoteFrame p.note-content a {

@@ -55,7 +55,7 @@ Responsor.push({
 	callback: async (data, socket, event) => {
 		var article;
 		try {
-			article = await global.ContentManager.get(data.channel, data.id);
+			article = await global.ContentManager.get(data.channel, data.id, data.ipfs);
 		}
 		catch (err) {
 			socket.send('GetArticleByID', null, err.message);
