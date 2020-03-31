@@ -91,8 +91,8 @@ export default {
 	display: flex;
 	box-sizing: border-box;
 	flex-flow: column wrap;
-	justify-content: start;
-	align-content: start;
+	justify-content: flex-start;
+	align-content: flex-start;
 	top: 50px;
 	bottom: 10px;
 	left: 10px;
