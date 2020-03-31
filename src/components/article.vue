@@ -6,17 +6,6 @@
 <script>
 import eventBus from './eventbus.js';
 
-var testContent;
-var xhr = new XMLHttpRequest();
-xhr.open('get', './markup/demo.mu', true);
-xhr.onreadystatechange = () => {
-	if (xhr.readyState == 4) {
-		if (xhr.status === 0 || xhr.response === '') return;
-		testContent = xhr.responseText;
-	}
-};
-xhr.send();
-
 const newEle = (tagName, classList, id) => {
 	var ele = document.createElement(tagName);
 	if (!!id) ele.id = id;
@@ -59,7 +48,6 @@ export default {
 				return;
 			}
 			eventBus.emit('showArticleTitle', data.title);
-			data.content = testContent;
 			var content = MarkUp.fullParse(data.content, {
 				toc: true,
 				showtitle: false,
