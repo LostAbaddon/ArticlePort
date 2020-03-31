@@ -2,8 +2,8 @@ const Path = require('path');
 const FS = require('fs');
 const { spawn } = require('child_process');
 
-const RetryDelay = 1000 * 60 * 10;
-const UpdateDelay = 1000 * 60 * 3;
+const RetryDelay = 1000 * 60;
+const UpdateDelay = 1000 * 30;
 const ResponsingTimeout = 1000 * 30;
 const PublishTimeout = 1000 * 60 * 3;
 
@@ -12,9 +12,11 @@ const watchList = {};
 const publishPending = [];
 const currentPending = [];
 const FolderPath = Path.join(process.cwd(), 'field');
+const ShowLog = true;
 var lastHash = '';
 
 const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => new Promise(res => {
+	var logcmd = cmd.join(' ');
 	var closer = () => {
 		try {
 			worker.kill('SIGINT');
@@ -30,21 +32,27 @@ const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => n
 			clearTimeout(timeouter);
 			timeouter = setTimeout(closer, timeout);
 		}
-		if (!!onData) onData(data.toString());
+		data = data.toString()
+		if (ShowLog) console.log(logcmd, data);
+		if (!!onData) onData(data);
 	});
 	worker.stdout.on('error', err => {
 		if (timeout > 0) {
 			clearTimeout(timeouter);
 			timeouter = setTimeout(closer, timeout);
 		}
-		if (!!onError) onError(err.toString());
+		err = err.toString();
+		if (ShowLog) console.error(logcmd, err);
+		if (!!onError) onError(err);
 	});
 	worker.stderr.on('data', data => {
 		if (timeout > 0) {
 			clearTimeout(timeouter);
 			timeouter = setTimeout(closer, timeout);
 		}
-		if (!!onWarning) onWarning(data.toString());
+		data = data.toString();
+		if (ShowLog) console.log(logcmd, data);
+		if (!!onWarning) onWarning(data);
 	});
 	worker.on('close', data => {
 		if (timeout > 0) clearTimeout(timeouter);
@@ -78,7 +86,6 @@ const resolveAndFetch = async node => {
 		return;
 	}
 	if (info.hash !== hash) {
-		info.hash = hash;
 		let path;
 		try {
 			path = await IPFS.downloadFolder(node, hash);
@@ -87,6 +94,7 @@ const resolveAndFetch = async node => {
 			setTimeout(() => resolveAndFetch(node), RetryDelay);
 			return;
 		}
+		info.hash = hash;
 		console.log('获取节点内容：' + path);
 		info.stamp = Date.now();
 		global.ContentUpdated(node, hash, path);
