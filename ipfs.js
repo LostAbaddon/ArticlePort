@@ -33,7 +33,7 @@ const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => n
 			timeouter = setTimeout(closer, timeout);
 		}
 		data = data.toString()
-		if (ShowLog) console.log(logcmd, data);
+		if (ShowLog) console.log(logcmd + ' :', data);
 		if (!!onData) onData(data);
 	});
 	worker.stdout.on('error', err => {
@@ -42,7 +42,7 @@ const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => n
 			timeouter = setTimeout(closer, timeout);
 		}
 		err = err.toString();
-		if (ShowLog) console.error(logcmd, err);
+		if (ShowLog) console.error(logcmd + ' >', err);
 		if (!!onError) onError(err);
 	});
 	worker.stderr.on('data', data => {
@@ -51,7 +51,7 @@ const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => n
 			timeouter = setTimeout(closer, timeout);
 		}
 		data = data.toString();
-		if (ShowLog) console.log(logcmd, data);
+		if (ShowLog) console.log(logcmd + ' |', data);
 		if (!!onWarning) onWarning(data);
 	});
 	worker.on('close', data => {
