@@ -39,8 +39,10 @@ const saveAndPublish = () => new Promise(async res => {
 	console.log('星站内容已更新！', hash);
 });
 
-Manager.init = () => new Promise(res => {
+Manager.init = () => new Promise(async (res, rej) => {
 	storagePath = Path.join(process.cwd(), global.NodeConfig.storage);
+	var prepare = _("Utils").preparePath;
+	await prepare(storagePath);
 
 	connectionFilepath = Path.join(storagePath, 'connection.json');
 	var json;
@@ -56,7 +58,7 @@ Manager.init = () => new Promise(res => {
 	});
 
 	personelFilepath = Path.join(storagePath, 'personel.json');
-	FS.readFile(personelFilepath, 'utf8', async (err, data) => {
+	FS.readFile(personelFilepath, 'utf8', (err, data) => {
 		if (!!err || !data) {
 			json = {};
 			json.signup = Date.now();
@@ -68,8 +70,14 @@ Manager.init = () => new Promise(res => {
 		json.name = global.NodeConfig.name;
 		json.id = global.NodeConfig.node.id;
 		json.signin = Date.now();
-		await saveAndPublish();
-		res();
+		FS.writeFile(personelFilepath, JSON.stringify(json), 'utf8', async err => {
+			if (!!err) {
+				rej(err);
+				return;
+			}
+			await saveAndPublish();
+			res();
+		});
 	});
 });
 Manager.getNodeList = () => {
