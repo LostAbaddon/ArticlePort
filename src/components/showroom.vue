@@ -111,6 +111,7 @@ export default {
 	border: 5px solid black;
 	border-radius: 8px;
 	box-shadow: inset 0px 0px 5px rgba(210, 240, 244, 0.3), 2px 2px 5px 2px rgba(211, 224, 243, 0.3);
+	word-break: break-word;
 	transition: all 250ms ease-in-out;
 }
 .showroom .item-container:hover {
