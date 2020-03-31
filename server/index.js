@@ -1,6 +1,8 @@
 const Koa = require('koa');
 const KoaBody = require('koa-body');
+const KoaStatic = require('koa-static');
 const ResponserList = require('./responser');
+// const Resources = require('./resources');
 const IO = require('./socket');
 const DefaultType = 'application/json';
 
@@ -53,6 +55,9 @@ for (let url in ResponserList) {
 	res._type = type;
 }
 
+// Static Resources
+app.use(KoaStatic(require('path').join(process.cwd(), 'dist')));
+
 // For CORS
 app.use(async (ctx, next) => {
 	ctx.set('Access-Control-Allow-Origin', '*');
@@ -72,6 +77,7 @@ app.use(async (ctx, next) => {
 // For FormData
 app.use(kb);
 
+// Transaction Dealers
 app.use(async ctx => {
 	var method = ctx.method.toLowerCase(), path = ctx.path, params = {};
 	if (!!ctx.query) for (let key in ctx.query) params[key] = ctx.query[key];
