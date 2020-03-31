@@ -41,7 +41,7 @@ const clp = CLP({
 	cfgPath = getFullPath(cfgPath);
 	var config;
 	try {
-		config = readConfig(cfgPath);
+		config = await readConfig(cfgPath);
 	} catch (err) {
 		if (err.code === 'MODULE_NOT_FOUND') {
 			console.error('指定的配置文件找不到！\n' + cfgPath);
@@ -98,7 +98,7 @@ const getFullPath = path => {
 	if (!!path.match(/^(\/|\w:[\\\/])/)) return path;
 	return Path.join(__dirname, path);
 };
-const readConfig = filepath => {
+const readConfig = filepath => new Promise(async (res, rej) => {
 	var config = require(filepath);
 	config.user = getFullPath(config.user);
 	if (config.port < 5000) config.port += 5000;
@@ -110,14 +110,17 @@ const readConfig = filepath => {
 	} catch (err) {
 		if (err.code === 'ENOENT') {
 			try {
-				IPFS.initUser();
+				await IPFS.initUser();
 			} catch (err) {
 				err = new Error('用户配置目录不存在且创建失败！\n' + config.user);
 				err.code = 'NO_CONFIG_FOLDER';
+				rej(err);
+				return;
 			}
 		}
 		else {
-			throw err;
+			rej(err);
+			return;
 		}
 	}
 
@@ -129,16 +132,17 @@ const readConfig = filepath => {
 	} catch (err) {
 		err = new Error('IPFS 节点配置目录损坏，请删除后重新初始化节点配置信息，或导入配置数据。\n' + path);
 		err.code = 'CONFIG_FILE_DESTROYED';
-		throw err;
+		rej(err);
+		return;
 	}
 
 	config.node = {
 		id: file.Identity.PeerID,
 		key: file.Identity.PrivKey
 	};
-	return config;
-};
-const checkFrontend = () => new Promise(res => {
+	res(config);
+});
+const checkFrontend = () => new Promise((res, rej) => {
 	FS.readdir('./dist', (err, ctx) => {
 		if (!!err) {
 			if (err.code === 'ENOENT') {
@@ -148,7 +152,8 @@ const checkFrontend = () => new Promise(res => {
 			else {
 				err = new Error('前端页面部署目录出错！');
 				err.code = 'FOLDER_ERROR';
-				throw err;
+				rej(err);
+				return;
 			}
 		}
 		res();
