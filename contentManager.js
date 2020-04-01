@@ -19,6 +19,7 @@ class HistoryItem {
 	publisher = "";
 	publishAt = 0;
 	hash = "";
+	type = 0;
 
 	toJSON () {
 		return {
@@ -27,7 +28,8 @@ class HistoryItem {
 			description: this.description,
 			publisher: this.publisher,
 			publishAt: this.publishAt,
-			hash: this.hash
+			hash: this.hash,
+			type: this.type
 		};
 	}
 
@@ -42,6 +44,7 @@ class HistoryItem {
 		hist.publisher = json.publisher || item.publisher;
 		hist.publishAt = json.publishAt || item.publishAt;
 		hist.hash = json.hash || item.hash;
+		hist.type = json.type || item.type;
 		return hist;
 	}
 }
@@ -55,6 +58,8 @@ class ContentItem {
 	publisher = "";
 	publishAt = 0;
 	hash = "";
+	type = 0;
+	repost = false;
 	history = [];
 
 	modify (key, value) {
@@ -69,6 +74,10 @@ class ContentItem {
 		else if (key === 'description') {
 			if (value === this.description) return;
 			this.description = value;
+		}
+		else if (key === 'type') {
+			if (value === this.type) return;
+			this.type = value;
 		}
 		else return;
 		this.publishAt = Date.now();
@@ -97,6 +106,7 @@ class ContentItem {
 			old.description = hist.description || old.description;
 			old.publisher = hist.publisher || old.publisher;
 			old.publishAt = hist.publishAt;
+			old.type = hist.type;
 		}
 		this.snap();
 		return true;
@@ -112,6 +122,7 @@ class ContentItem {
 		json.publisher = old.publisher;
 		json.publishAt = old.publishAt;
 		json.hash = old.hash;
+		json.type = old.type;
 		return json;
 	}
 	snap () {
@@ -124,6 +135,8 @@ class ContentItem {
 			hist.publisher = this.publisher;
 			hist.publishAt = this.publishAt;
 			hist.hash = this.hash;
+			hist.type = this.type;
+			hist.repost = this.repost;
 			this.history.unshift(hist);
 		}
 		else {
@@ -133,6 +146,7 @@ class ContentItem {
 			hist.description = this.description;
 			hist.publisher = this.publisher;
 			hist.publishAt = this.publishAt;
+			hist.type = this.type;
 		}
 		this.history.sort((ha, hb) => hb.publishAt - ha.publishAt);
 		hist = this.history[0];
@@ -142,6 +156,7 @@ class ContentItem {
 		this.publisher = hist.publisher;
 		this.publishAt = hist.publishAt;
 		this.hash = hist.hash;
+		this.type = hist.type;
 	}
 	merge (content) {
 		var changed = false;
@@ -168,6 +183,8 @@ class ContentItem {
 			publisher: this.publisher,
 			publishAt: this.publishAt,
 			hash: this.hash,
+			type: this.type,
+			repost: this.repost,
 			history: this.history.map(h => h.toJSON())
 		};
 		if (withChannel) json.channel = this.channel;
@@ -184,6 +201,8 @@ class ContentItem {
 		item.publisher = json.publisher || global.NodeConfig.node.id;
 		item.publishAt = json.publishAt || 0;
 		item.hash = json.hash || "";
+		item.type = json.type || "";
+		item.repost = !!json.repost;
 		item.history = [];
 		(json.history || []).forEach(i => {
 			var hist = HistoryItem.fromJSON(i, item);
