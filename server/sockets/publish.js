@@ -22,6 +22,8 @@ const callback = (data, socket, event) => {
 	info.description = data.description || '';
 	info.publisher = NodeConfig.node.id;
 	info.publishAt = Date.now();
+	info.repost = false;
+	info.type = data.type || 0;
 
 	var tempFileName = data.id + '-' + info.publishAt + '.file';
 	tempFileName = Path.join(FieldPath, tempFileName);
