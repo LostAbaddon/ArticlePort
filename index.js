@@ -1,24 +1,18 @@
 const Path = require('path');
 const FS = require('fs');
 
-require("./contentManager");
-require("./nodeManager");
 require("./core");
-// require("./core/events/delaytrigger.js");
-// require("./core/datastore/lrucache.js");
 loadall("./core/commandline");
+require("./common");
 
 const vueService = require('@vue/cli-service');
-const IPFS = require('./ipfs');
+const webServer = require('./server');
+require("./contentManager");
+require("./nodeManager");
 
 const CLP = _('CL.CLP');
 const setStyle = _('CL.SetStyle');
-
-process.on('unhandledRejection', (reason, promise) => {
-	console.log('xxxxxxxxxxxxxxxxxxxx');
-	console.log(reason);
-	console.log(promise);
-});
+const IPFS = require('./ipfs');
 
 // 系统参数
 
@@ -86,7 +80,7 @@ const clp = CLP({
 	actions.push(global.NodeManager.init());
 	await Promise.all(actions);
 
-	require('./server')(config.port, () => {
+	webServer(config.port, () => {
 		console.log(setStyle('星站开始工作！', 'bold'));
 	});
 })

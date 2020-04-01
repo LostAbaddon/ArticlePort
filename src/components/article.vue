@@ -81,7 +81,7 @@ export default {
 				inner += '<ol>';
 				data.history.forEach(item => {
 					inner += '<li class="history-item" name="' + item.hash + '" article="' + data.id + '">';
-					if (item.hash === data.ipfs) {
+					if (item.hash === data.hash) {
 						inner += '<strong>' + item.hash + '（当前版本）</strong>';
 					}
 					else {
@@ -141,7 +141,7 @@ export default {
 			net.emit('GetArticleByID', {
 				channel: 'ArticleMarket',
 				id: id,
-				ipfs: history
+				hash: history
 			});
 		},
 		getImageContainer (ele) {
@@ -303,5 +303,9 @@ export default {
 }
 .article-container > article div.image-wall div.resource.image {
 	width: 100%;
+}
+.article-container > article .endnote-chapter p,
+.article-container > article .endnote-chapter li {
+	word-break: break-word;
 }
 </style>

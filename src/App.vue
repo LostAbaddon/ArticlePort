@@ -52,6 +52,9 @@ export default {
 			eventBus.emit('updateTimeline', msg.timeline);
 		});
 		this.$net.register('TimelineUpdated', (msg, err, event) => {
+			this.$net.emit('GetTimeline', ['ArticleMarket', 'ArticleComments']);
+		});
+		this.$net.register('GetTimeline', (msg, err, event) => {
 			eventBus.emit('updateTimeline', msg);
 		});
 
