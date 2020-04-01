@@ -7,6 +7,7 @@ require("./common");
 
 const vueService = require('@vue/cli-service');
 const webServer = require('./server');
+
 require("./contentManager");
 require("./nodeManager");
 

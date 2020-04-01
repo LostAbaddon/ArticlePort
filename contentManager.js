@@ -10,6 +10,9 @@ const SelfFetchRetry = 1000 * 60;
 const SelfFetchDelay = 1000 * 60 * 10;
 
 const storagePath = Path.join(process.cwd(), 'storage');
+_("Utils").preparePath(storagePath, ok => {
+	console.log('临时仓库目录（' + storagePath + '）：' + ok);
+});
 var localStorage;
 
 class HistoryItem {
@@ -338,6 +341,7 @@ class ContentTimeLine {
 			this.changed = true;
 			if (!!this.group) this.group.changed = true;
 		}
+		return added;
 	}
 	getByID (channel, id, withChannel=false) {
 		var ch = this.channels[channel];
@@ -522,7 +526,6 @@ Manager.init = () => new Promise(async res => {
 	TimeLine = new TimeLineGroup(global.NodeConfig.node.id, localStorage);
 	var actions = [TimeLine.main.reloadAllFromFile()];
 
-	await prepare(storagePath);
 	var subs = await getAllSubFolders(storagePath);
 	subs.forEach(path => {
 		var remote = path.replace(storagePath, '').replace(/^[\\\/]/, '');
@@ -543,15 +546,16 @@ Manager.has = (channel, id) => {
 	if (!ch) return false;
 	return !!ch.contentMap[id];
 };
-Manager.set = (channel, id, info) => {
-	if (!channel) return false;
+Manager.set = (channel, id, info) => new Promise(async res => {
+	if (!channel) return res(false);
 	var added = TimeLine.main.add(channel, info);
 	if (added) {
 		TimeLine.main.update();
-		TimeLine.main.toFile(channel);
+		await TimeLine.main.toFile(channel);
 		IO.broadcast('TimelineUpdated');
 	}
-};
+	res(added);
+});
 Manager.get = (channel, id, hash) => new Promise(async (res, rej) => {
 	if (!channel) return rej(new Error('频道信息错误！'));
 	TimeLine.update();

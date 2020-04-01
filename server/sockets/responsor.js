@@ -47,7 +47,7 @@ Responsor.push({
 Responsor.push({
 	event: 'GetTimeline',
 	callback: (data, socket, event) => {
-		socket.send('TimelineUpdated', global.ContentManager.getTimeline(data));
+		socket.send('GetTimeline', global.ContentManager.getTimeline(data));
 	}
 });
 Responsor.push({

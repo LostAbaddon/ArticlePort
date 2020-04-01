@@ -12,7 +12,7 @@ const watchList = {};
 const publishPending = [];
 const currentPending = [];
 const FolderPath = Path.join(process.cwd(), 'field');
-const ShowLog = true;
+const ShowLog = false;
 var lastHash = '';
 
 const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => new Promise(res => {
