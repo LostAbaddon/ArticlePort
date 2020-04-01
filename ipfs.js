@@ -3,7 +3,7 @@ const FS = require('fs');
 const { spawn } = require('child_process');
 
 const RetryDelay = 1000 * 60;
-const UpdateDelay = 1000 * 30;
+const UpdateDelay = 1000 * 60;
 const ResponsingTimeout = 1000 * 30;
 const PublishTimeout = 1000 * 60 * 3;
 

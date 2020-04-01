@@ -79,13 +79,13 @@ export default {
 				info = newEle('section', 'history-versions');
 				inner = '<h1 class="history-title">历史版本</h1>';
 				inner += '<ol>';
-				data.history.forEach(path => {
-					inner += '<li class="history-item" name="' + path + '" article="' + data.id + '">';
-					if (path === data.ipfs) {
-						inner += '<strong>' + path + '（当前版本）</strong>';
+				data.history.forEach(item => {
+					inner += '<li class="history-item" name="' + item.hash + '" article="' + data.id + '">';
+					if (item.hash === data.ipfs) {
+						inner += '<strong>' + item.hash + '（当前版本）</strong>';
 					}
 					else {
-						inner += path;
+						inner += item.hash;
 					}
 					inner += '</li>';
 				});

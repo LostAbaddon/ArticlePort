@@ -111,8 +111,6 @@ const ReadTimeline = path => new Promise(res => {
 					data.forEach(item => {
 						item.channel = channel;
 						item.publishAt = item.publishAt || 1;
-						item.history = item.history || [];
-						if (!item.history.includes(item.ipfs)) item.history.push(item.ipfs);
 						var old = ContentMap[item.id];
 						if (!old) {
 							ContentMap[item.id] = item;
@@ -121,12 +119,7 @@ const ReadTimeline = path => new Promise(res => {
 						else {
 							old.publishAt = old.publishAt || 0;
 							if (item.publishAt > old.publishAt) {
-								if (!!old.history) {
-									old.history.forEach(ipfs => {
-										if (item.history.includes(ipfs)) return;
-										item.history.push(ipfs);
-									});
-								}
+								addHistory(item, old.history);
 								TimeLine.remove(old);
 								TimeLine.push(item);
 								ContentMap[item.id] = item;
@@ -221,6 +214,29 @@ const readLocalStorage = () => new Promise(async res => {
 	});
 });
 
+const addHistory = (item, history) => {
+	item.history = item.history || [];
+	item.history = item.history.filter(his => !String.is(his));
+	if (item.history.length < 1) item.history.push({
+		hash: item.ipfs,
+		fingerprint: item.fingerprint,
+		title: item.title,
+		author: item.author,
+		publishAt: item.publishAt,
+		publisher: item.publisher
+	});
+	if (!history) return;
+	if (String.is(history)) return;
+	if (!Array.isArray(history)) history = [history];
+	history.forEach(his => {
+		if (String.is(his)) return;
+		var has = item.history.some(h => his.hash === h.hash);
+		if (has) return;
+		item.history.push(his);
+	});
+	item.history.sort((ha, hb) => hb.publishAt - ha.publishAt);
+};
+
 Manager.init = () => new Promise(async res => {
 	IO = require('./server/socket');
 	prepare = _("Utils").preparePath;
@@ -259,19 +275,13 @@ Manager.set = (channel, id, info) => {
 	}
 
 	info.channel = channel;
-	info.history = info.history || [];
-	if (!info.history.includes(info.ipfs)) info.history.push(info.ipfs);
+	addHistory(info, null);
 	bookShelf.storage.set(id, info);
 	var old = ContentMap[id];
 	ContentMap[id] = info;
 	if (!!old) {
 		TimeLine.remove(old);
-		if (!!old.history) {
-			old.history.forEach(ipfs => {
-				if (info.history.includes(ipfs)) return;
-				info.history.push(ipfs);
-			});
-		}
+		addHistory(info, old.history);
 	}
 	TimeLine.push(info);
 	TimeLine.sort((a, b) => b.publishAt - a.publishAt);
@@ -292,19 +302,38 @@ Manager.get = (channel, id, ipfs) => new Promise(async (res, rej) => {
 			return;
 		}
 	}
+
 	ipfs = ipfs || info.ipfs;
-	var article = {
-		id: info.id,
-		ipfs,
-		fingerprint: info.fingerprint,
-		title: info.title,
-		author: info.author,
-		history: info.history,
-		publisher: global.NodeManager.getNodeName(info.publisher)
-	};
-	if (!!info.history && info.history.length > 0 && !info.history.includes(ipfs)) {
+	addHistory(info, null);
+	console.log('XXXX', ipfs, info.history);
+	if (!!info.history && info.history.length > 0 && !info.history.some(his => his.hash === ipfs)) {
 		rej(new Error('指定历史版本不属于该文档！'));
 		return;
+	}
+
+	var article;
+	if (ipfs !== info.ipfs) {
+		let his = info.history.filter(his => his.hash === ipfs)[0];
+		article = {
+			id: info.id,
+			ipfs,
+			fingerprint: his.fingerprint,
+			title: his.title,
+			author: his.author,
+			history: info.history,
+			publisher: global.NodeManager.getNodeName(his.publisher)
+		};
+	}
+	else {
+		article = {
+			id: info.id,
+			ipfs,
+			fingerprint: info.fingerprint,
+			title: info.title,
+			author: info.author,
+			history: info.history,
+			publisher: global.NodeManager.getNodeName(info.publisher)
+		};
 	}
 	var content;
 	try {
@@ -378,9 +407,6 @@ global.ContentUpdated = async (node, hash, path) => {
 				list[item.id] = item;
 			});
 			(nList.content || []).forEach(item => {
-				if (!item.history) {
-					item.history = [item.ipfs];
-				}
 				var id = item.id;
 				var old = list[id];
 				if (!old || item.publishAt > old.publishAt) {
@@ -388,11 +414,8 @@ global.ContentUpdated = async (node, hash, path) => {
 					old = ContentMap[id];
 					ContentMap[id] = item;
 					if (!!old) {
+						addHistory(item, old.history);
 						TimeLine.remove(old);
-						if (!item.history.includes(old.ipfs)) item.history.push(old.ipfs);
-						if (!!old.history) old.history.forEach(ipfs => {
-							if (!item.history.includes(ipfs)) item.history.push(ipfs);
-						});
 					}
 					TimeLine.push(item);
 				}
