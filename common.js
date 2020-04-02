@@ -12,9 +12,9 @@ const getAllSubFolders = path => new Promise(res => {
 		count = list.length;
 		list.forEach(sub => {
 			sub = Path.join(path, sub);
-			FS.stat(sub, (err, stats) => {
+			FS.stat(sub, (err, stat) => {
 				count --;
-				if (!err && !!stats && stats.isDirectory()) {
+				if (!err && !!stat && stat.isDirectory()) {
 					subs.push(sub);
 				}
 				if (count === 0) res(subs);

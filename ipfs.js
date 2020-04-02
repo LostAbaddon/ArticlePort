@@ -1,11 +1,16 @@
 const Path = require('path');
 const FS = require('fs');
 const { spawn } = require('child_process');
+const getJSON = _('Utils.getJSON');
+const saveFile = _('Utils.saveFile');
 
 const RetryDelay = 1000 * 60;
 const UpdateDelay = 1000 * 60;
 const ResponsingTimeout = 1000 * 30;
 const PublishTimeout = 1000 * 60 * 3;
+const ResourceExpire = 1000 * 60 * 60 * 24; // 一周后自动删除资源
+const ResourceSaveDelay = 1000 * 10;
+const ResourceExpireDelay = 1000 * 60 * 60;
 
 const IPFS = {};
 const watchList = {};
@@ -113,6 +118,96 @@ const getLocalFile = filepath => new Promise((res, rej) => {
 		res(data);
 	});
 });
+
+const ResourceManager = {
+	mapFile: Path.join(process.cwd(), 'storage', 'resourceMap.json'),
+	resources: {},
+	saver: null,
+	init: async () => {
+		var map = await getJSON(ResourceManager.mapFile);
+		var exists = await ResourceManager.checkFolder();
+		Object.keys(map).forEach(name => {
+			if (!exists[name]) delete map[name];
+		});
+		Object.keys(exists).forEach(name => {
+			if (!map[name]) map[name] = exists[name];
+		});
+		ResourceManager.resources = map;
+		ResourceManager.expire();
+		setInterval(ResourceManager.expire, ResourceExpireDelay);
+	},
+	checkFolder: () => new Promise(res => {
+		var exists = {};
+		FS.readdir(FolderPath, (err, list) => {
+			if (!!err) return res(exists);
+			var count = list.length;
+			if (count === 0) return res(exists);
+			list.forEach(name => {
+				var subPath = Path.join(FolderPath, name);
+				FS.stat(subPath, (err, stat) => {
+					count --;
+					if (!err && !!stat && (stat.isFile() || stat.isDirectory())) {
+						exists[name] = {
+							stamp: Math.round(stat.birthtimeMs),
+							isDir: stat.isDirectory()
+						};
+					}
+					if (count === 0) res(exists);
+				});
+			});
+		});
+	}),
+	waitAndSave: () => {
+		if (!!ResourceManager.saver) clearTimeout(ResourceManager.saver);
+		ResourceManager.saver = setTimeout(ResourceManager.save, ResourceSaveDelay);
+	},
+	save: () => new Promise(async res => {
+		if (!!ResourceManager.saver) {
+			clearTimeout(ResourceManager.saver);
+			ResourceManager.saver = null;
+		}
+		await saveFile(ResourceManager.mapFile, JSON.stringify(ResourceManager.resources));
+		res();
+	}),
+	set: (name, isDir=false) => {
+		ResourceManager.resources[name] = { stamp: Date.now(), isDir };
+		ResourceManager.waitAndSave();
+	},
+	expire: () => new Promise(res => {
+		var targets = [];
+		var now = Date.now();
+		Object.keys(ResourceManager.resources).forEach(name => {
+			var stat = ResourceManager.resources[name];
+			var time = stat.stamp;
+			if (now - time >= ResourceExpire) targets.push([name, stat]);
+		});
+		var count = targets.length;
+		if (count === 0) return res();
+		var callback = (path, err) => {
+			count --;
+			if (!!err) {
+				console.error('删除 ' + path + ' 时出错：' + err.message);
+			}
+			if (count === 0) {
+				res();
+			}
+		};
+		targets.forEach(async item => {
+			var [name, stat] = item;
+			var path = Path.join(FolderPath, name);
+			if (stat.isDir) {
+				FS.rmdir(path, { recursive: true }, err => {
+					callback(path, err);
+				});
+			}
+			else {
+				FS.unlink(path, err => {
+					callback(path, err);
+				});
+			}
+		});
+	}),
+};
 
 IPFS.start = port => new Promise(res => {
 	if (!!IPFS.ipfs) return;
@@ -235,6 +330,7 @@ IPFS.downloadFolder = (cid, hash) => new Promise(async (res, rej) => {
 		return;
 	}
 	if (finished) return;
+	ResourceManager.set(hash, true);
 	res(path);
 });
 IPFS.downloadFile = hash => new Promise(async (res, rej) => {
@@ -246,7 +342,10 @@ IPFS.downloadFile = hash => new Promise(async (res, rej) => {
 	catch {
 		file = null;
 	}
-	if (!!file) return res(file);
+	if (!!file) {
+		ResourceManager.set(hash, false);
+		return res(file);
+	}
 
 	var logs = '', finished = false;
 	try {
@@ -272,6 +371,7 @@ IPFS.downloadFile = hash => new Promise(async (res, rej) => {
 	catch {
 		file = null;
 	}
+	ResourceManager.set(hash, false);
 	return res(file);
 });
 IPFS.publish = hash => new Promise(async (res, rej) => {
@@ -347,6 +447,8 @@ IPFS.subscribe = hash => {
 IPFS.unsubscribe = hash => {
 	delete watchList[hash];
 };
+
+ResourceManager.init();
 
 global.IPFS = IPFS;
 module.exports = IPFS;
