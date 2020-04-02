@@ -1,5 +1,5 @@
 <template>
-	<div id="app">
+	<div id="app" @keyup.esc="onClose" @keyup.left="turnLeft" @keyup.right="turnRight" tabindex="0">
 		<toolbar />
 		<showroom />
 		<article-container />
@@ -25,7 +25,8 @@ import nodeManager from './components/nodeManager.vue';
 export default {
 	data () {
 		return {
-			nodeInfo: {}
+			nodeInfo: {},
+			imageShown: false
 		};
 	},
 	components: {
@@ -39,6 +40,12 @@ export default {
 		nodeManager
 	},
 	mounted () {
+		eventBus.on('showImageWall', () => {
+			this.imageShown = true;
+		});
+		eventBus.on('imageWallHidden', () => {
+			this.imageShown = false;
+		});
 		this.$net.register('RequestStarPortInfo', (msg, err, event) => {
 			eventBus.emit('loadFinish');
 			if (!!err) {
@@ -62,6 +69,18 @@ export default {
 		this.$net.emit('RequestStarPortInfo', ['ArticleMarket', 'ArticleComments']);
 	},
 	methods: {
+		onClose () {
+			if (this.imageShown) eventBus.emit('hideImageWall');
+			else eventBus.emit('hideArticle');
+		},
+		turnLeft () {
+			if (!this.imageShown) return;
+			eventBus.emit('turnPrevImage');
+		},
+		turnRight () {
+			if (!this.imageShown) return;
+			eventBus.emit('turnNextImage');
+		}
 	}
 }
 </script>

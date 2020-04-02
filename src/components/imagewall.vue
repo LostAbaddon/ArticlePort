@@ -35,10 +35,21 @@ export default {
 			this.imageList.splice(0, this.imageList.length, ...list);
 			this.current = index;
 		});
+		eventBus.on('hideImageWall', (list, index) => {
+			this.show = false;
+			eventBus.emit('imageWallHidden');
+		});
+		eventBus.on('turnPrevImage', (list, index) => {
+			if (this.current > 0) this.current --;
+		});
+		eventBus.on('turnNextImage', (list, index) => {
+			if (this.current < this.imageList.length - 1) this.current ++;
+		});
 	},
 	methods: {
 		closeMe () {
 			this.show = false;
+			eventBus.emit('imageWallHidden');
 		},
 		movePrev () {
 			this.current --;
