@@ -62,7 +62,7 @@ Wormhole.shakeHand = node => new Promise(res => {
 	console.log(conns);
 	var conn = conns[0];
 	conns.some(c => {
-		if (c.ip.indexOf('117.') >= 0) {
+		if (c.ip.indexOf('192.') >= 0) {
 			conn = c;
 			return true;
 		}
