@@ -8,12 +8,13 @@ Wormhole.init = port => new Promise((res, rej) => {
 	Connection.server('tcp', port, (svr, err) => {
 		if (!!err) return rej(err);
 		server = svr;
+		console.log('虫洞网络启动：' + server.port);
 		server.onMessage((...args) => {
 			console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
 			console.log(args);
 		});
 
-		res();
+		res(server.port);
 	});
 });
 Wormhole.broadcast = msg => new Promise(res => {
@@ -31,12 +32,16 @@ Wormhole.alohaKosmos = () => new Promise(res => {
 	if (count === 0) return res();
 
 	nodes.forEach(async node => {
+		node = node.id;
 		var conns;
 		try {
-			conns = await IPFS.getConnections(node.id);
+			conns = await IPFS.getConnections(node);
 		} catch {}
 		if (!!conns && conns.length > 0) {
-			conns.forEach(conn => conn.weight = 0);
+			conns.forEach(conn => {
+				conn.weight = 0;
+				// conn.port += 4100;
+			});
 			NodeMap[node] = conns;
 			Wormhole.shakeHand(node);
 		}
@@ -54,9 +59,17 @@ Wormhole.shakeHand = node => new Promise(res => {
 		if (diff === 0) diff = Math.random() - 0.5;
 		return diff;
 	});
+	console.log(conns);
 	var conn = conns[0];
+	conns.some(c => {
+		if (c.ip.indexOf('192.') >= 0) {
+			conn = c;
+			return true;
+		}
+	});
 	Connection.client(async socket => {
-		var respond = await socket.sendMessage(conn.ip, conn.port, 'tcp', 'ShakeHand');
+		console.log('Say Hello To:', conn.ip, conn.port, node);
+		var respond = await socket.sendMessage(conn.ip, conn.port, 'tcp', Uint8Array.fromString('ShakeHand'));
 		console.log('Got Respond:', respond);
 	});
 });

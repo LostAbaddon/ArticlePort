@@ -27,6 +27,11 @@ if (Data.protocol === 'tcp') {
 		var contentMap = {};
 
 		remote.on('data', msg => {
+			console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+			console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+			console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+			console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+			console.log(msg);
 			if (Current === Status.TERMINATED) {
 				remote.destroy();
 				return;

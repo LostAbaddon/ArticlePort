@@ -65,7 +65,7 @@ const clp = CLP({
 		actions.push(IPFS.start(config.port - 4000));
 	}
 	// 启动虫洞网络
-	actions.push(global.Wormhole.init(config.port + 100));
+	actions.push(global.Wormhole.init(config.port));
 
 	try {
 		await Promise.all(actions);

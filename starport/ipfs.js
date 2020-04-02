@@ -475,7 +475,7 @@ IPFS.getConnections = hash => new Promise(async (res, rej) => {
 		if (ip === '::1' || ip === '0.0.0.0' || ip === '127.0.0.1') return; // 去除本机地址
 		var protocol = match[2].toLowerCase();
 		if (protocol !== 'tcp') return; // 只考虑 TCP 连接
-		var port = match[3];
+		var port = match[3] * 1;
 		return {ip, port};
 	}).filter(c => !!c);
 	res(logs);
