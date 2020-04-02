@@ -8,21 +8,19 @@ require("./common");
 const vueService = require('@vue/cli-service');
 const webServer = require('./server');
 
-require("./contentManager");
-require("./nodeManager");
+require("./starport/contentManager");
+require("./starport/nodeManager");
 
 const CLP = _('CL.CLP');
 const setStyle = _('CL.SetStyle');
-const IPFS = require('./ipfs');
+const IPFS = require('./starport/ipfs');
 
 // 系统参数
-
 const CSP_Name = "内容星门（Contverse StarPort）";
 const CSP_Version = "0.0.1";
 const CSP_Default_Config = './config.json';
 
 // 配置命令行工具
-
 const clp = CLP({
 	mode: 'process',
 	title: CSP_Name + " v" + CSP_Version,

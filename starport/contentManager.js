@@ -4,7 +4,7 @@ const getAllSubFolders = _('Utils.getAllSubFolders');
 const getJSON = _('Utils.getJSON');
 const saveFile = _('Utils.saveFile');
 const prepare = _("Utils").preparePath;
-const IO = require('./server/socket');;
+const IO = require('../server/socket');;
 
 const SelfFetchRetry = 1000 * 60;
 const SelfFetchDelay = 1000 * 60 * 10;
