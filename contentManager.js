@@ -99,7 +99,7 @@ class ContentItem {
 	addHistory (hist) {
 		var old = this.history.filter(h => h.hash === hist.hash);
 		if (old.length === 0) {
-			this.history.push(old);
+			this.history.push(hist);
 		}
 		else {
 			old = old[0];
@@ -188,7 +188,9 @@ class ContentItem {
 			hash: this.hash,
 			type: this.type,
 			repost: this.repost,
-			history: this.history.map(h => h.toJSON())
+			history: this.history.map(h => {
+				return h.toJSON();
+			})
 		};
 		if (withChannel) json.channel = this.channel;
 		return json;
@@ -376,8 +378,9 @@ class ContentTimeLine {
 			var actions = [];
 			subs.forEach(sub => {
 				var channel = sub.replace(folderpath, '').replace(/^[\\\/]+/, '');
-				var ch = this.prepare(channel, Path.join(sub, 'index.json'));
-				actions.push(ch.fromFile());
+				var subPath = Path.join(sub, 'index.json');
+				var ch = this.prepare(channel, subPath);
+				actions.push(ch.fromFile(subPath));
 			});
 			var changes = await Promise.all(actions);
 			var changed = changes.some(c => {
@@ -595,7 +598,6 @@ Manager.flush = channel => new Promise(async res => {
 	res();
 });
 Manager.getTimeline = channels => {
-	console.log
 	return TimeLine.getTimeline(channels);
 };
 Manager.fetchSelf = async () => {
@@ -633,6 +635,7 @@ global.ContentUpdated = async (node, hash, remotePath) => {
 	var localPath = Path.join(storagePath, node);
 	await prepare(localPath);
 
+	console.log('开始合并时间线(' + node + ')……')
 	var tl = TimeLine.get(node);
 	if (!tl) tl = TimeLine.add(node, localPath);
 
@@ -646,6 +649,7 @@ global.ContentUpdated = async (node, hash, remotePath) => {
 	remoteInfo.signin = remoteInfo.signin || 0;
 	localInfo.signin = localInfo.signin || 0;
 	if (remoteInfo.signin > localInfo.signin) {
+		console.log('更新节点信息(' + node + ')');
 		await Promise.all([
 			saveFile(localFile, JSON.stringify(remoteInfo)),
 			global.NodeManager.changeNodeName(node, remoteInfo.name)
@@ -654,8 +658,13 @@ global.ContentUpdated = async (node, hash, remotePath) => {
 
 	var changed = await tl.reloadAllFromFile(remotePath);
 	if (changed) {
+		console.log('节点有更新(' + node + ')');
 		await tl.dumpAllToFile(localPath);
 		TimeLine.update();
 		IO.broadcast('TimelineUpdated');
+		console.log('节点更新(' + node + ')完成');
+	}
+	else {
+		console.log('节点无更新(' + node + ')');
 	}
 };
