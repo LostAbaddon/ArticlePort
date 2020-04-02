@@ -400,7 +400,6 @@ class Fiber {
 		this.#blocks = [];
 		for (let i = 0; i < count; i ++) {
 			let start = i * config.blockSize, end = start + config.blockSize;
-			console.log("VVVVVVVVVVVVVVVVVVVVVVVVVVVVV", message);
 			let block = message.subarray(start, end);
 			let head = array2buffer(header);
 			let index = array2buffer([...uint2bytes(i, 4)]);

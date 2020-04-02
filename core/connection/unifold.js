@@ -96,6 +96,18 @@ if (Data.protocol === 'tcp') {
 			content = null;
 			delete contentMap[mid];
 		});
+		remote.on('error', (...args) => {
+			console.log('ERROR::::', args);
+		});
+		remote.on('close', (...args) => {
+			console.log('CLOSE::::', args);
+		});
+		remote.on('closed', (...args) => {
+			console.log('CLOSED::::', args);
+		});
+		remote.on('exit', (...args) => {
+			console.log('EXIT::::', args);
+		});
 	};
 	let onInit = () => {
 		inited = true;

@@ -40,7 +40,7 @@ Wormhole.alohaKosmos = () => new Promise(res => {
 		if (!!conns && conns.length > 0) {
 			conns.forEach(conn => {
 				conn.weight = 0;
-				// conn.port += 4100;
+				conn.port += 4100;
 			});
 			NodeMap[node] = conns;
 			Wormhole.shakeHand(node);
@@ -62,7 +62,7 @@ Wormhole.shakeHand = node => new Promise(res => {
 	console.log(conns);
 	var conn = conns[0];
 	conns.some(c => {
-		if (c.ip.indexOf('192.') >= 0) {
+		if (c.ip.indexOf('117.') >= 0) {
 			conn = c;
 			return true;
 		}
