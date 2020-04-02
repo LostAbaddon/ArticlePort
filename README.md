@@ -2,7 +2,7 @@
 
 与 ArticleUtils 配套使用的个人后端，也支持 HTTP 接入。
 
-- **版本**： 0.1.0
+- **版本**： 0.2.0
 - **作者**： [LostAbaddon](mailto:lostabaddon@gmail.com)
 - **网址**： [GitHub](https://github.com/LostAbaddon/ArticlePort)
 
@@ -39,6 +39,10 @@
 对文件的小修改，其指纹会保持不变或只发生很微小的改变，而只有大规模的改动才会彻底改变文件的指纹。
 
 这是用来判断两篇文章是否是同一篇文章的一个依据。
+
+## 虫洞网络
+
+利用 IPFS 的 DHT 建立的 TCP 通讯网络。
 
 ## TODO
 

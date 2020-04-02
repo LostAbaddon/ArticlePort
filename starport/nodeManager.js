@@ -70,7 +70,7 @@ Manager.init = () => new Promise(async (res, rej) => {
 	res();
 });
 Manager.getNodeList = () => {
-	return Object.keys(SelfInfo.connections).map(id => {
+	return Object.keys(SelfInfo.connections || {}).map(id => {
 		return { name: SelfInfo.connections[id], id };
 	});
 };

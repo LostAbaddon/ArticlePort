@@ -10,10 +10,12 @@ const webServer = require('./server');
 
 require("./starport/contentManager");
 require("./starport/nodeManager");
+const IPFS = require('./starport/ipfs');
+
+require('./wormhole');
 
 const CLP = _('CL.CLP');
 const setStyle = _('CL.SetStyle');
-const IPFS = require('./starport/ipfs');
 
 // 系统参数
 const CSP_Name = "内容星门（Contverse StarPort）";
@@ -55,29 +57,31 @@ const clp = CLP({
 
 	global.NodeConfig = config;
 
-	var actions;
+	var actions = [];
 	if (!param.dev) {
-		actions = [];
-
 		// 检查前端页面是否准备就绪
 		actions.push(checkFrontend());
 		// 启动 IPFS
 		actions.push(IPFS.start(config.port - 4000));
+	}
+	// 启动虫洞网络
+	actions.push(global.Wormhole.init(config.port + 100));
 
-		try {
-			await Promise.all(actions);
-		}
-		catch (err) {
-			console.error('核心组件启动失败：\n' + err.message);
-			process.exit();
-			return;
-		}
+	try {
+		await Promise.all(actions);
+	}
+	catch (err) {
+		console.error('核心组件启动失败：\n' + err.message);
+		process.exit();
+		return;
 	}
 
 	actions = [];
 	actions.push(global.ContentManager.init());
 	actions.push(global.NodeManager.init());
 	await Promise.all(actions);
+
+	global.Wormhole.alohaKosmos(); // 虫洞网广播连线
 
 	webServer(config.port, () => {
 		console.log(setStyle('星站开始工作！', 'bold'));

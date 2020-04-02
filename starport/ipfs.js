@@ -447,6 +447,39 @@ IPFS.subscribe = hash => {
 IPFS.unsubscribe = hash => {
 	delete watchList[hash];
 };
+IPFS.getConnections = hash => new Promise(async (res, rej) => {
+	var logs = '', finished = false;
+	try {
+		await runCMD(
+			['dht', 'findpeer', hash],
+			data => {
+				logs += data + '\n';
+			},
+			err => {
+				finished = true;
+				rej(err);
+			}
+		);
+	}
+	catch (err) {
+		rej(err);
+		return;
+	}
+	if (finished) return;
+
+	logs = logs.split(/\n+/).map(c => c.trim()).filter(c => c.length > 0);
+	logs = logs.map(l => {
+		var match = l.match(/^\/ip[46]\/([\w\.:]+)\/(tcp\d*|udp\d*)\/(\d+)$/i);
+		if (!match) return null;
+		var ip = match[1];
+		if (ip === '::1' || ip === '0.0.0.0' || ip === '127.0.0.1') return; // 去除本机地址
+		var protocol = match[2].toLowerCase();
+		if (protocol !== 'tcp') return; // 只考虑 TCP 连接
+		var port = match[3];
+		return {ip, port};
+	}).filter(c => !!c);
+	res(logs);
+});
 
 ResourceManager.init();
 
