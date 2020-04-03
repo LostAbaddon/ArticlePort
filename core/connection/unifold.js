@@ -24,6 +24,8 @@ var socket;
 if (Data.protocol === 'tcp') {
 	let handler = remote => {
 		var address = remote.remoteAddress;
+		var ip4 = address.match(/\d+\.\d+\.\d+\.\d+/);
+		if (!!ip4) address = ip4[0];
 		var port = remote.remotePort;
 		var contentMap = {};
 

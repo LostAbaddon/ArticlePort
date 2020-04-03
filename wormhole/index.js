@@ -9,9 +9,9 @@ Wormhole.init = port => new Promise((res, rej) => {
 		if (!!err) return rej(err);
 		server = svr;
 		console.log('虫洞网络启动：' + server.port);
-		server.onMessage((...args) => {
+		server.onMessage(event => {
 			console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
-			console.log(args);
+			console.log(event);
 		});
 
 		global.NodeConfig.node.port = server.port;
@@ -60,7 +60,7 @@ Wormhole.shakeHand = node => new Promise(res => {
 		if (diff === 0) diff = Math.random() - 0.5;
 		return diff;
 	});
-	// console.log(conns);
+	console.log(conns);
 	var conn = conns[0];
 	conns.some(c => {
 		if (c.ip.indexOf('192.') >= 0) {
