@@ -26,7 +26,15 @@ Wormhole.sendToNode = (cid, msg) => new Promise(res => {
 Wormhole.sendToAddr = (ip, port, msg) => new Promise(res => {
 	res();
 });
-Wormhole.alohaKosmos = () => new Promise(res => {
+Wormhole.alohaKosmos = () => new Promise(async res => {
+	// console.log('开始自查：', global.NodeConfig.node.id, server);
+	// var selfConns = await IPFS.getConnections(global.NodeConfig.node.id);
+	// console.log('本地对外接口：', selfConns);
+	// return;
+
+
+
+
 	var nodes = global.NodeManager.getNodeList();
 	var count = nodes.length;
 	if (count === 0) return res();

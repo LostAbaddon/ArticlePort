@@ -26,6 +26,8 @@ if (Data.protocol === 'tcp') {
 		var { address, port } = remote.address();
 		var contentMap = {};
 
+		remote.on('connection', (...args) => console.log('TCP CONNECTION:', args));
+		remote.on('listening', (...args) => console.log('TCP LISTENING:', args));
 		remote.on('data', msg => {
 			if (Current === Status.TERMINATED) {
 				remote.destroy();
@@ -92,7 +94,7 @@ if (Data.protocol === 'tcp') {
 			delete contentMap[mid];
 		});
 		remote.on('error', err => {
-			remote.close();
+			remote.end();
 		});
 	};
 	let onInit = () => {
