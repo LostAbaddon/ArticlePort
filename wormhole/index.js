@@ -10,8 +10,20 @@ Wormhole.init = port => new Promise((res, rej) => {
 		server = svr;
 		console.log('虫洞网络启动：' + server.port);
 		server.onMessage(event => {
+			var msg = event.message;
+			if (!msg) return;
+			try {
+				msg = msg.toBuffer().toString();
+			}
+			catch (err) {
+				console.error('远端(' + event.sender.address + ':' + event.sender.port + ')发送信息解析失败：' + err.message);
+				return;
+			}
+			msg = msg.split(':');
+			var evt = msg.splice(0, 1);
+			msg = msg.join(':');
 			console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
-			console.log(event);
+			console.log(evt, msg);
 		});
 
 		global.NodeConfig.node.port = server.port;
@@ -70,7 +82,7 @@ Wormhole.shakeHand = node => new Promise(res => {
 	});
 	Connection.client(async socket => {
 		console.log('Say Hello To:', conn.ip, conn.port, node);
-		var respond = await socket.sendMessage(conn.ip, conn.port, 'tcp', Uint8Array.fromString('ShakeHand'));
+		var respond = await socket.sendMessage(conn.ip, conn.port, 'tcp', Uint8Array.fromString('ShakeHand:' + global.NodeConfig.node.id));
 		console.log('Got Respond:', respond);
 	});
 });
