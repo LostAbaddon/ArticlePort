@@ -56,14 +56,16 @@ Manager.init = () => new Promise(async (res, rej) => {
 	SelfInfo.name = global.NodeConfig.name;
 	SelfInfo.signup = json.signup || SelfInfo.signin;
 	SelfInfo.port = global.NodeConfig.node.port;
+	SelfInfo.publicPort = json.publicPort || SelfInfo.port;
 	SelfInfo.connections = json.connections || {};
+	global.NodeConfig.node.publicPort = SelfInfo.publicPort;
 
 	Object.keys(SelfInfo.connections).forEach(id => {
 		IPFS.subscribe(id);
 	});
 
 	try {
-		await saveAndPublish(false);
+		await saveAndPublish(json.port !== global.NodeConfig.port);
 	}
 	catch (err) {
 		console.error('保存并发布信息时出错：' + err.message);
@@ -154,6 +156,20 @@ Manager.update = () => new Promise(async (res, rej) => {
 		return;
 	}
 	res();
+});
+Manager.changePublicPort = port => new Promise(async res => {
+	if (global.NodeConfig.node.publicPort === port) return res(false);
+	global.NodeConfig.node.publicPort = port;
+	SelfInfo.publicPort = port;
+	var ok = true;
+	try {
+		await saveAndPublish(true);
+	}
+	catch (err) {
+		ok = false;
+		console.error('保存并发布信息时出错：' + err.message);
+	}
+	res(ok);
 });
 
 global.NodeManager = Manager;

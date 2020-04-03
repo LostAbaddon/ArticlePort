@@ -6,6 +6,7 @@
 		<image-wall />
 		<configuration />
 		<node-manager />
+		<port-manager />
 		<loadmask />
 		<popup />
 	</div>
@@ -21,6 +22,7 @@ import article from './components/article.vue';
 import imageWall from './components/imagewall.vue';
 import configuration from './components/configuration.vue';
 import nodeManager from './components/nodeManager.vue';
+import portManager from './components/publicPort.vue';
 
 export default {
 	data () {
@@ -37,7 +39,8 @@ export default {
 		articleContainer: article,
 		imageWall,
 		configuration,
-		nodeManager
+		nodeManager,
+		portManager
 	},
 	mounted () {
 		eventBus.on('showImageWall', () => {
@@ -47,6 +50,7 @@ export default {
 			this.imageShown = false;
 		});
 		this.$net.register('RequestStarPortInfo', (msg, err, event) => {
+			console.log(msg);
 			eventBus.emit('loadFinish');
 			if (!!err) {
 				eventBus.emit('popupShow', '出错', err);
@@ -54,8 +58,9 @@ export default {
 			}
 			eventBus.emit('updateNodeInfo', {
 				name: msg.name,
-				id: msg.id
+				id: msg.id,
 			});
+			eventBus.emit('updatePublicPort', msg.publicPort);
 			eventBus.emit('updateTimeline', msg.timeline);
 		});
 		this.$net.register('TimelineUpdated', (msg, err, event) => {

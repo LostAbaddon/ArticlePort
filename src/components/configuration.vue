@@ -1,6 +1,7 @@
 <template>
 	<div class="configuration no-select" :shown="show ? 'true' : 'false'">
 		<div class="menu-item" @click="manageNodes">管理关注节点</div>
+		<div class="menu-item" @click="managePublicPort">管理外网端口</div>
 	</div>
 </template>
 
@@ -23,7 +24,7 @@ export default {
 			}
 			eventBus.emit('showNodeManager', msg);
 		});
-		eventBus.on('toggleConfigMenu', info => {
+		eventBus.on('toggleConfigMenu', () => {
 			if (this.show) {
 				eventBus.emit('hideMask');
 			}
@@ -44,6 +45,10 @@ export default {
 			eventBus.emit('hideMask');
 			this.$net.emit('GetNodeList');
 			eventBus.emit('loadStart');
+		},
+		managePublicPort () {
+			eventBus.emit('hideMask');
+			eventBus.emit('showPublicPort');
 		}
 	}
 };
