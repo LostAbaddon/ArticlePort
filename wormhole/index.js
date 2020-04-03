@@ -14,7 +14,8 @@ Wormhole.init = port => new Promise((res, rej) => {
 			console.log(args);
 		});
 
-		res(server.port);
+		global.NodeConfig.node.port = server.port;
+		res();
 	});
 });
 Wormhole.broadcast = msg => new Promise(res => {
@@ -27,14 +28,6 @@ Wormhole.sendToAddr = (ip, port, msg) => new Promise(res => {
 	res();
 });
 Wormhole.alohaKosmos = () => new Promise(async res => {
-	// console.log('开始自查：', global.NodeConfig.node.id, server);
-	// var selfConns = await IPFS.getConnections(global.NodeConfig.node.id);
-	// console.log('本地对外接口：', selfConns);
-	// return;
-
-
-
-
 	var nodes = global.NodeManager.getNodeList();
 	var count = nodes.length;
 	if (count === 0) return res();
@@ -67,7 +60,7 @@ Wormhole.shakeHand = node => new Promise(res => {
 		if (diff === 0) diff = Math.random() - 0.5;
 		return diff;
 	});
-	console.log(conns);
+	// console.log(conns);
 	var conn = conns[0];
 	conns.some(c => {
 		if (c.ip.indexOf('192.') >= 0) {

@@ -23,11 +23,10 @@ var Current = Status.IDLE;
 var socket;
 if (Data.protocol === 'tcp') {
 	let handler = remote => {
-		var { address, port } = remote.address();
+		var address = remote.remoteAddress;
+		var port = remote.remotePort;
 		var contentMap = {};
 
-		remote.on('connection', (...args) => console.log('TCP CONNECTION:', args));
-		remote.on('listening', (...args) => console.log('TCP LISTENING:', args));
 		remote.on('data', msg => {
 			if (Current === Status.TERMINATED) {
 				remote.destroy();

@@ -55,6 +55,7 @@ Manager.init = () => new Promise(async (res, rej) => {
 	SelfInfo.id = global.NodeConfig.node.id;
 	SelfInfo.name = global.NodeConfig.name;
 	SelfInfo.signup = json.signup || SelfInfo.signin;
+	SelfInfo.port = global.NodeConfig.node.port;
 	SelfInfo.connections = json.connections || {};
 
 	Object.keys(SelfInfo.connections).forEach(id => {

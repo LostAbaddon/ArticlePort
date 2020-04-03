@@ -59,16 +59,20 @@ const clp = CLP({
 
 	var actions = [];
 	if (!param.dev) {
+		global.NodeConfig.webPort = global.NodeConfig.port;
 		// 检查前端页面是否准备就绪
 		actions.push(checkFrontend());
 		// 启动 IPFS
 		actions.push(IPFS.start(config.port - 4000));
 	}
+	else {
+		global.NodeConfig.webPort = '8080';
+	}
 	// 启动虫洞网络
 	actions.push(global.Wormhole.init(config.port + 100));
 
 	try {
-		await Promise.all(actions);
+		actions = await Promise.all(actions);
 	}
 	catch (err) {
 		console.error('核心组件启动失败：\n' + err.message);
@@ -79,7 +83,7 @@ const clp = CLP({
 	actions = [];
 	actions.push(global.ContentManager.init());
 	actions.push(global.NodeManager.init());
-	await Promise.all(actions);
+	actions = await Promise.all(actions);
 
 	global.Wormhole.alohaKosmos(); // 虫洞网广播连线
 
