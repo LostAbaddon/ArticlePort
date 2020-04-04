@@ -35,12 +35,12 @@ class Manifold {
 			} else {
 				let resp = (_msg) => {
 					this.#unifold.postMessage({
-						remote: msg.sender,
+						remote: msg.data.sender,
 						msg: _msg
 					});
 				};
 				for (let cb of this.#onMsg) {
-					if (Function.is(cb)) cb(msg.data, msg.type, resp);
+					if (Function.is(cb)) cb(msg.data, resp);
 				}
 			}
 		});

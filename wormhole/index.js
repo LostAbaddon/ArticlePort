@@ -10,7 +10,7 @@ Wormhole.init = port => new Promise((res, rej) => {
 		if (!!err) return rej(err);
 		server = svr;
 		console.log('虫洞网络启动：' + server.port);
-		server.onMessage((event, type, resp) => {
+		server.onMessage((event, resp) => {
 			var msg = event.message;
 			if (!msg) return;
 			try {
@@ -31,19 +31,8 @@ Wormhole.init = port => new Promise((res, rej) => {
 				e = e || ('respond-' + evt);
 				msg = msg.toString();
 				msg = global.NodeConfig.node.id + ':' + e + ':' + msg;
+				msg = Uint8Array.fromString(msg);
 				resp(msg);
-				return;
-				var conns = NodeMap[sender.id] || [];
-				var conn = conns.filter(c => c.ip === sender.address);
-				if (conn.length === 0) {
-					conn = {
-						ip: sender.address,
-						port: sender.port,
-						weight: 0
-					};
-				}
-				else conn = conn[0];
-				Wormhole.sendToAddr(conn, e, msg, encrypt);
 			});
 		});
 
@@ -57,7 +46,6 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(res => {
 Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res => {
 	var conns = NodeMap[node];
 	if (!conns || conns.length === 0) return res();
-	console.log(node, conns);
 	var notOK = true, conn, result, count = conns.length * 2;
 	while (notOK && count > 0) {
 		conns.sort((ca, cb) => {

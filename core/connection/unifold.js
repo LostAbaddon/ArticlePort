@@ -17,7 +17,11 @@ const postMsg = (type, data) => {
 	Parent.postMessage({ type, data });
 };
 Parent.on('message', (msg) => {
-	console.log('XXXXXXXXXXXXXXXXXX', msg);
+	var socket = msg.remote.protocol + ':' + msg.remote.address + ':' + msg.remote.port;
+	console.log('XXXXXXXXXXXXXXXXXX', socket, msg);
+	socket = responsors[socket];
+	console.log('                  ', socket);
+	if (!socket) return;
 });
 
 var Status = Symbol.set('IDLE', 'WAITING', 'WORKING', 'TERMINATED');
