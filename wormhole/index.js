@@ -29,7 +29,7 @@ Wormhole.init = port => new Promise((res, rej) => {
 			if (!cb) return;
 			cb(sender, msg, (msg, e, encrypt=false) => {
 				e = e || ('respond-' + evt);
-				var conns = NodeMap[sender.id];
+				var conns = NodeMap[sender.id] || [];
 				var conn = conns.filter(c => c.ip === sender.address);
 				if (conn.length === 0) {
 					conn = {

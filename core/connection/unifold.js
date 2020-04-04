@@ -16,11 +16,14 @@ const Net = require('net');
 const postMsg = (type, data) => {
 	Parent.postMessage({ type, data });
 };
+Parent.on('message', (msg) => {
+	console.log('XXXXXXXXXXXXXXXXXX', msg);
+});
 
 var Status = Symbol.set('IDLE', 'WAITING', 'WORKING', 'TERMINATED');
 var Current = Status.IDLE;
 
-var socket;
+var socket, responsors = {};
 if (Data.protocol === 'tcp') {
 	let handler = remote => {
 		var address = remote.remoteAddress;
@@ -28,6 +31,8 @@ if (Data.protocol === 'tcp') {
 		if (!!ip4) address = ip4[0];
 		var port = remote.remotePort;
 		var contentMap = {};
+		var id = 'tcp:' + address + ':' + port;
+		responsors[id] = remote;
 
 		remote.on('data', msg => {
 			if (Current === Status.TERMINATED) {
@@ -96,6 +101,9 @@ if (Data.protocol === 'tcp') {
 		});
 		remote.on('error', err => {
 			remote.end();
+		});
+		remote.on('close', () => {
+			delete responsors[id];
 		});
 	};
 	let onInit = () => {
