@@ -26,6 +26,7 @@ Wormhole.init = port => new Promise((res, rej) => {
 			var evt = msg.splice(0, 1)[0];
 			msg = msg.join(':');
 			var cb = Responsor[evt];
+			if (!cb) console.log('::::::::::::::::::::::', evt, msg);
 			if (!cb) return;
 			cb(sender, msg, (msg, e, encrypt=false) => {
 				e = e || ('respond-' + evt);
