@@ -1,8 +1,8 @@
 const Responsor = {};
 
-Responsor.shakehand = (msg, res) => {
-	console.log(">>>>>>>>", msg);
-	res('DONE|' + global.NodeConfig.node.id);
+Responsor.shakehand = (sender, msg, res) => {
+	console.log(">>>>>>>>", msg, sender.id, sender.address, sender.port);
+	res('DONE');
 };
 
 module.exports = Responsor;

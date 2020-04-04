@@ -20,19 +20,26 @@ Wormhole.init = port => new Promise((res, rej) => {
 				console.error('远端(' + event.sender.address + ':' + event.sender.port + ')发送信息解析失败：' + err.message);
 				return;
 			}
+			var sender = event.sender;
 			msg = msg.split(':');
+			sender.id = msg.splice(0, 1)[0];
 			var evt = msg.splice(0, 1)[0];
 			msg = msg.join(':');
-			console.log('~~~~~~~~~~~~~~~~~~', evt, msg);
 			var cb = Responsor[evt];
-			if (!!cb) return;
-			cb(msg, (msg, e) => {
+			if (!cb) return;
+			cb(sender, msg, (msg, e, encrypt=false) => {
 				e = e || ('respond-' + evt);
-				Wormhole.sendToAddr({
-					ip: event.sender.address,
-					port: event.sender.port,
-					weight: 0
-				}, e, msg);
+				var conns = NodeMap[sender.id];
+				var conn = conns.filter(c => c.ip === sender.address);
+				if (conn.length === 0) {
+					conn = {
+						ip: sender.address,
+						port: sender.port,
+						weight: 0
+					};
+				}
+				else conn = conn[0];
+				Wormhole.sendToAddr(conn, e, msg, encrypt);
 			});
 		});
 
@@ -58,7 +65,7 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 		console.log('::::', node, conn.ip, conn.port);
 		result = await Wormhole.sendToAddr(conn, event, msg, encrypt);
 		console.log("    ", result)
-		notOK = result.ok;
+		notOK = !result.ok;
 		count --;
 	}
 	res(result);
@@ -67,7 +74,7 @@ Wormhole.sendToAddr = (conn, event, msg, encrypt=false) => new Promise(res => {
 	Connection.client(async socket => {
 		console.log('Send ' + event + '-msg To:', conn.ip, conn.port);
 		msg = msg.toString();
-		msg = (event || 'message') + ':' + msg;
+		msg = global.NodeConfig.node.id + ':' + (event || 'message') + ':' + msg;
 		var respond = await socket.sendMessage(conn.ip, conn.port, 'tcp', Uint8Array.fromString(msg));
 		if (respond.ok) {
 			conn.weight ++;
