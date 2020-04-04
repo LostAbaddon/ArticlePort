@@ -10,7 +10,7 @@ Wormhole.init = port => new Promise((res, rej) => {
 		if (!!err) return rej(err);
 		server = svr;
 		console.log('虫洞网络启动：' + server.port);
-		server.onMessage(event => {
+		server.onMessage((event, type, resp) => {
 			var msg = event.message;
 			if (!msg) return;
 			try {
@@ -29,6 +29,10 @@ Wormhole.init = port => new Promise((res, rej) => {
 			if (!cb) return;
 			cb(sender, msg, (msg, e, encrypt=false) => {
 				e = e || ('respond-' + evt);
+				msg = msg.toString();
+				msg = global.NodeConfig.node.id + ':' + e + ':' + msg;
+				resp(msg);
+				return;
 				var conns = NodeMap[sender.id] || [];
 				var conn = conns.filter(c => c.ip === sender.address);
 				if (conn.length === 0) {

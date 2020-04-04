@@ -33,14 +33,14 @@ class Manifold {
 				this.title = msg.data.title;
 				if (!!this.#onReady) this.#onReady(msg.data.err || null);
 			} else {
-				let resp = (type, _msg) => {
+				let resp = (_msg) => {
 					this.#unifold.postMessage({
 						remote: msg.sender,
-						type, msg: _msg
+						msg: _msg
 					});
 				};
 				for (let cb of this.#onMsg) {
-					if (Function.is(cb)) cb(msg.data, msg.type);
+					if (Function.is(cb)) cb(msg.data, msg.type, resp);
 				}
 			}
 		});
