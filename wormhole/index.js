@@ -1,5 +1,5 @@
 const Connection = require('../core/connection');
-const Responsor = require('./responsors');
+const Responsor = require('./responsor');
 
 var server;
 const Wormhole = {};
