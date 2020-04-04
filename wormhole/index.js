@@ -1,4 +1,5 @@
 const Connection = require('../core/connection');
+const Responsor = require('./responsors');
 
 var server;
 const Wormhole = {};
@@ -20,24 +21,58 @@ Wormhole.init = port => new Promise((res, rej) => {
 				return;
 			}
 			msg = msg.split(':');
-			var evt = msg.splice(0, 1);
+			var evt = msg.splice(0, 1)[0];
 			msg = msg.join(':');
-			console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
-			console.log(evt, msg);
+			var cb = Responsor[evt];
+			if (!!cb) return;
+			cb(msg, (msg, e) => {
+				e = e || ('respond-' + evt);
+				Wormhole.sendToAddr({
+					ip: event.sender.address,
+					port: event.sender.port,
+					weight: 0
+				}, e, msg);
+			});
 		});
 
 		global.NodeConfig.node.port = server.port;
 		res();
 	});
 });
-Wormhole.broadcast = msg => new Promise(res => {
+Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(res => {
 	res();
 });
-Wormhole.sendToNode = (cid, msg) => new Promise(res => {
-	res();
+Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res => {
+	var conns = NodeMap[node];
+	if (!conns || conns.length === 0) return res();
+	var notOK = true, conn, result, count = conns.length * 2;
+	while (notOK && count > 0) {
+		conns.sort((ca, cb) => {
+			var diff = cb.weight - ca.weight;
+			if (diff === 0) diff = Math.random() - 0.5;
+			return diff;
+		});
+		conn = conns[0];
+		result = await Wormhole.sendToAddr(conn, event, msg, encrypt);
+		notOK = result.ok;
+		count --;
+	}
+	res(result);
 });
-Wormhole.sendToAddr = (ip, port, msg) => new Promise(res => {
-	res();
+Wormhole.sendToAddr = (conn, event, msg, encrypt=false) => new Promise(res => {
+	Connection.client(async socket => {
+		console.log('Send ' + event + '-msg To:', conn.ip, conn.port);
+		msg = msg.toString();
+		msg = (event || 'message') + ':' + msg;
+		var respond = await socket.sendMessage(conn.ip, conn.port, 'tcp', Uint8Array.fromString(msg));
+		if (respond.ok) {
+			conn.weight ++;
+		}
+		else {
+			conn.weight --;
+		}
+		res(respond);
+	});
 });
 Wormhole.alohaKosmos = () => new Promise(async res => {
 	var nodes = global.NodeManager.getNodeList();
@@ -64,27 +99,9 @@ Wormhole.alohaKosmos = () => new Promise(async res => {
 		}
 	});
 });
-Wormhole.shakeHand = node => new Promise(res => {
-	var conns = NodeMap[node];
-	if (!conns || conns.length === 0) return res();
-	conns.sort((ca, cb) => {
-		var diff = cb.weight - ca.weight;
-		if (diff === 0) diff = Math.random() - 0.5;
-		return diff;
-	});
-	console.log(conns);
-	var conn = conns[0];
-	conns.some(c => {
-		if (c.ip.indexOf('192.') >= 0) {
-			conn = c;
-			return true;
-		}
-	});
-	Connection.client(async socket => {
-		console.log('Say Hello To:', conn.ip, conn.port, node);
-		var respond = await socket.sendMessage(conn.ip, conn.port, 'tcp', Uint8Array.fromString('ShakeHand:' + global.NodeConfig.node.id));
-		console.log('Got Respond:', respond);
-	});
+Wormhole.shakeHand = node => new Promise(async res => {
+	await Wormhole.sendToNode(node, 'shakehand', global.NodeConfig.node.id);
+	res();
 });
 
 global.Wormhole = Wormhole;
