@@ -23,6 +23,7 @@ Wormhole.init = port => new Promise((res, rej) => {
 			msg = msg.split(':');
 			var evt = msg.splice(0, 1)[0];
 			msg = msg.join(':');
+			console.log('~~~~~~~~~~~~~~~~~~', evt, msg);
 			var cb = Responsor[evt];
 			if (!!cb) return;
 			cb(msg, (msg, e) => {
@@ -45,6 +46,7 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(res => {
 Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res => {
 	var conns = NodeMap[node];
 	if (!conns || conns.length === 0) return res();
+	console.log(node, conns);
 	var notOK = true, conn, result, count = conns.length * 2;
 	while (notOK && count > 0) {
 		conns.sort((ca, cb) => {
@@ -53,7 +55,9 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 			return diff;
 		});
 		conn = conns[0];
+		console.log('::::', node, conn.ip, conn.port);
 		result = await Wormhole.sendToAddr(conn, event, msg, encrypt);
+		console.log("    ", result)
 		notOK = result.ok;
 		count --;
 	}
