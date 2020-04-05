@@ -20,8 +20,7 @@ Parent.on('message', (msg) => {
 	var socket = msg.remote.protocol + ':' + msg.remote.address + ':' + msg.remote.port;
 	socket = responsors[socket];
 	if (!socket) return;
-	console.log('XXXXXXXXXXXXXXXXXX', socket, msg);
-	socket.write(msg);
+	socket.write(msg.msg);
 });
 
 var Status = Symbol.set('IDLE', 'WAITING', 'WORKING', 'TERMINATED');
