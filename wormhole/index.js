@@ -40,10 +40,13 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(res => {
 	res();
 });
 Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res => {
+	console.log('-------------------------    1');
 	var conns = NodeMap[node];
 	if (!conns) return res();
+	console.log('-------------------------    2');
 	var count = conns.getAll().length;
 	if (count === 0) return res();
+	console.log('-------------------------    3');
 	var notOK = true, result;
 	while (notOK && count > 0) {
 		let conn = conns.choose();
@@ -98,13 +101,16 @@ Wormhole.shakeHand = node => new Promise(async res => {
 	if (!traffic) {
 		traffic = new UserTraffic();
 		NodeMap[node] = traffic;
+		conns.forEach(conn => {
+			traffic.getConn(conn.host).getConn(conn.port);
+		});
 	}
 	else {
 		traffic.getAll().forEach(conn => {
 			traffic.record(conn.host, conn.port, false, 0, true);
 		});
 		conns.forEach(conn => {
-			traffic.record(conn.ip, conn.port, true, 0, true);
+			traffic.record(conn.host, conn.port, true, 0, true);
 		});
 	}
 
