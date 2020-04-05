@@ -58,8 +58,16 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 });
 Wormhole.sendToAddr = (conn, event, msg, encrypt=false) => new Promise(res => {
 	console.log('Send ' + event + '-msg To:', conn.host, conn.port);
-	Net.createConnection(conn.port, conn.host, (...args) => {
+	var socket = Net.createConnection({
+		host: conn.host,
+		port: conn.port,
+		timeout: 1000 * 30
+	}, (...args) => {
 		console.log('xxxxxxxxxxxxxxxxxxx', args);
+	});
+	socket.on('error', err => {
+		console.error('通讯连接出错：' + err.message);
+		socket.end();
 	});
 	return;
 
@@ -94,6 +102,8 @@ Wormhole.shakeHand = node => new Promise(async res => {
 		return;
 	}
 	console.log('发现节点(' + node + ')的可用连接(' + conns.length + '个)');
+
+	conns.forEach(item => item.port += 4100);
 
 	var traffic = NodeMap[node];
 	if (!traffic) {
