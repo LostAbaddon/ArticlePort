@@ -45,43 +45,54 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 	var count = conns.getAll().length;
 	if (count === 0) return res();
 	var notOK = true, result;
+
+	msg = global.NodeConfig.node.id + ':' + (event || 'message') + ':' + msg;
+	msg = Uint8Array.fromString(msg);
+	var msgLen = msg.length;
+
 	while (notOK && count > 0) {
 		let conn = conns.choose();
-		console.log(conn);
+		console.log(conns.getAll());
 		console.log('::::', node, conn.host, conn.port);
-		result = await Wormhole.sendToAddr(conn, event, msg, encrypt);
+		result = await Wormhole.sendToAddr(conns, conn, msg, encrypt);
 		console.log("    ", result)
 		notOK = !result.ok;
 		count --;
 	}
 	res(result);
 });
-Wormhole.sendToAddr = (conn, event, msg, encrypt=false) => new Promise(res => {
+Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	console.log('Send ' + event + '-msg To:', conn.host, conn.port);
-	var socket = Net.createConnection({
-		host: conn.host,
-		port: conn.port,
-		timeout: 1000 * 30
-	}, (...args) => {
-		console.log('xxxxxxxxxxxxxxxxxxx', args);
+
+	if (!!info.socket) {
+		socket.resMap.push(res);
+		info.socket.write(Uint8Array.fromString(msg), (...args) => {
+			console.log('xxxxxxxx   1', args, msgLen);
+			res(true);
+		});
+		return;
+	}
+
+	var socket = Net.createConnection(conn.port, conn.host, () => {
+		info.socket = socket;
+		socket.resMap = [res];
+		socket.on('error', err => {
+			console.error('通讯连接出错：' + err.message);
+			socket.end();
+			info.socket = null;
+			socket.resMap.forEach(res => res(false));
+		});
+		socket.write(msg, (...args) => {
+			console.log('xxxxxxxx   2', args);
+			socket.resMap.remove(res);
+			res(true);
+		});
 	});
 	socket.on('error', err => {
 		console.error('通讯连接出错：' + err.message);
 		socket.end();
-	});
-	return;
-
-	Connection.client(async socket => {
-		msg = msg.toString();
-		msg = global.NodeConfig.node.id + ':' + (event || 'message') + ':' + msg;
-		var respond = await socket.sendMessage(conn.host, conn.port, 'tcp', Uint8Array.fromString(msg));
-		if (respond.ok) {
-			conn.weight ++;
-		}
-		else {
-			conn.weight --;
-		}
-		res(respond);
+		info.socket = null;
+		socket.resMap.forEach(res => res(false));
 	});
 });
 Wormhole.alohaKosmos = () => new Promise(async res => {

@@ -1,5 +1,6 @@
 class UserTraffic {
 	conns = {};
+	socket = null;
 	weight = 0;
 	count = 0;
 	total = 0;
