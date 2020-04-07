@@ -68,8 +68,6 @@ const clp = CLP({
 	else {
 		global.NodeConfig.webPort = '8080';
 	}
-	// 启动虫洞网络
-	actions.push(global.Wormhole.init(config.port + 100));
 
 	try {
 		actions = await Promise.all(actions);
@@ -85,6 +83,8 @@ const clp = CLP({
 	actions.push(global.NodeManager.init());
 	actions = await Promise.all(actions);
 
+	// 启动虫洞网络
+	await global.Wormhole.init(config.port + 100);
 	global.Wormhole.alohaKosmos(); // 虫洞网广播连线
 
 	webServer(config.port, () => {

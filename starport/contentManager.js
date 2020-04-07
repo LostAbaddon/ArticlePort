@@ -522,7 +522,7 @@ class TimeLineGroup {
 }
 
 const Manager = {};
-var TimeLine; 
+var TimeLine;
 
 Manager.init = () => new Promise(async res => {
 	localStorage = Path.join(process.cwd(), global.NodeConfig.storage);
