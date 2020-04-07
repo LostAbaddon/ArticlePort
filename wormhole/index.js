@@ -112,7 +112,7 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 				info.sockets.remove(item);
 				return;
 			}
-			if (!socket.resList) return;
+			if (!socket || !socket.resList) return res(false);
 			socket.resList.remove(res);
 			res(true);
 		});
