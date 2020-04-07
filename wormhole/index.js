@@ -37,10 +37,12 @@ Wormhole.createServer = port => new Promise(res => {
 		console.log('与远端建立连接:' + address + ':' + port);
 
 		remote.on('data', msg => {
-			var len = msg.length;
 			msg = msg.toString();
-			msg = msg.split('||||')[0];
-			console.log('>>>>>>>>>>>>>>>>>>>>>', msg);
+			msg = msg.split(':');
+			var len = msg.splice(0, 1) * 1;
+			if (isNaN(len)) return;
+			msg = msg.join(':');
+			msg = msg.substring(0, len);
 			msg = msg.split(':');
 			var node = msg[0];
 			var action = msg[1];
@@ -95,8 +97,9 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 	if (count === 0) return res();
 	var notOK = true, done;
 
-	msg = global.NodeConfig.node.id + ':' + (event || 'message') + ':' + msg + '||||';
+	msg = global.NodeConfig.node.id + ':' + (event || 'message') + ':' + msg;
 	var msgLen = msg.length;
+	msg = msglen + ':' + msg;
 
 	while (notOK && count > 0) {
 		let conn = conns.choose(true);
@@ -151,10 +154,12 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	});
 	socket.resList = [res];
 	socket.on('data', msg => {
-		var len = msg.length;
 		msg = msg.toString();
-		msg = msg.split('||||')[0];
-		console.log('<<<<<<<<<<<<<<<<<<<<<', msg);
+		msg = msg.split(':');
+		var len = msg.splice(0, 1) * 1;
+		if (isNaN(len)) return;
+		msg = msg.join(':');
+		msg = msg.substring(0, len);
 		msg = msg.split(':');
 		var node = msg[0];
 		var action = msg[1];

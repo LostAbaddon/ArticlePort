@@ -118,13 +118,13 @@ class NodeTraffic {
 		conn.record(success, bytes, isIn);
 	}
 	getAll () {
-		var list = [];
+		var list = [], count = this.weight / Object.keys(this.conns).length;
 		Object.keys(this.conns).forEach(port => {
 			var conn = this.conns[port];
 			var item = {};
 			item.host = this.host;
 			item.port = conn.port;
-			item.weight = conn.weight;
+			item.weight = conn.weight + count;
 			item.count = conn.count;
 			item.total = conn.total;
 			item.incoming = conn.incoming;
