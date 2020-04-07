@@ -39,6 +39,7 @@ Wormhole.createServer = port => new Promise(res => {
 		remote.on('data', msg => {
 			var len = msg.length;
 			msg = msg.toString();
+			console.log('>>>>>>>>>>>>>>>>>>>>>', msg);
 			msg = msg.split(':');
 			var node = msg[0];
 			var action = msg[1];
@@ -112,7 +113,6 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	var item = info.getConn(conn.host).getConn(conn.port);
 	if (!!item.socket) {
 		item.socket.resList.push(res);
-		console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[', msg);
 		item.socket.write(msg, 'utf8', err => {
 			if (!!err) {
 				console.error('发送数据至 ' + conn.host + ':' + conn.port + ' 时出错：' + err.message);
@@ -133,7 +133,6 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	var socket = Net.createConnection(conn.port, conn.host, () => {
 		item.socket = socket;
 		info.sockets.push(item);
-		console.log('..................................', msg);
 		socket.write(msg, 'utf8', err => {
 			if (!!err) {
 				console.error('发送数据至 ' + conn.host + ':' + conn.port + ' 时出错：' + err.message);
@@ -152,6 +151,7 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	socket.resList = [res];
 	socket.on('data', msg => {
 		var len = msg.length;
+		console.log('<<<<<<<<<<<<<<<<<<<<<', msg);
 		msg = msg.toString();
 		msg = msg.split(':');
 		var node = msg[0];
