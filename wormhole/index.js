@@ -80,6 +80,8 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 	while (notOK && count > 0) {
 		let conn = conns.choose(true);
 		if (!conn) conn = conns.choose(false);
+		console.log(conns.sockets);
+		console.log(conns.getAll());
 		console.log('发送数据至 ' + conn.host + ':' + conn.port + ' (' + node + ')');
 		done = await Wormhole.sendToAddr(conns, conn, msg, encrypt);
 		conns.record(conn.host, conn.port, done, msgLen, false);
@@ -102,6 +104,7 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 				info.sockets.remove(item);
 				return;
 			}
+			if (!socket.resList) return;
 			socket.resList.remove(res);
 			res(true);
 		});
@@ -121,6 +124,7 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 				info.sockets.remove(item);
 				return;
 			}
+			if (!socket.resList) return;
 			socket.resList.remove(res);
 			res(true);
 		});
