@@ -151,7 +151,7 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 		var action = msg[1];
 		msg = msg[2];
 		if (!node || !action) return;
-		info.record(conn.host conn.port, true, len, true);
+		info.record(conn.host, conn.port, true, len, true);
 		action = Responsor[action];
 		if (!action) return;
 		action(node, msg);
