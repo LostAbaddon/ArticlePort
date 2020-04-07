@@ -33,13 +33,13 @@ const saveAndPublish = (needSave=true) => new Promise(async res => {
 	global.NodeConfig.hash = hash;
 	res();
 	try {
-		hash = await IPFS.publish(hash);
+		await IPFS.publish(hash);
 	}
 	catch (err) {
 		console.error('发布更新失败：' + err.message);
 		return;
 	}
-	console.log('星站内容已更新！', hash);
+	console.log('星站内容已更新！ (' + global.NodeConfig.node.id + ' <==== ' + hash + ')');
 	global.Wormhole.broadcast('StarPortUpdated', hash);
 });
 
