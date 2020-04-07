@@ -130,9 +130,9 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 				return;
 			}
 			console.log('step 3');
-			if (!socket || !socket.resList) return res(false);
+			if (!item.socket || !item.socket.resList) return res(false);
 			console.log('step 4');
-			socket.resList.remove(res);
+			item.socket.resList.remove(res);
 			res(true);
 		});
 		return;
