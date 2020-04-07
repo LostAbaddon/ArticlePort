@@ -40,6 +40,7 @@ const saveAndPublish = (needSave=true) => new Promise(async res => {
 		return;
 	}
 	console.log('星站内容已更新！', hash);
+	global.Wormhole.broadcast('StarPortUpdated', hash);
 });
 
 Manager.init = () => new Promise(async (res, rej) => {

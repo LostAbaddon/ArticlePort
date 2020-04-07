@@ -71,7 +71,8 @@ Wormhole.createServer = port => new Promise(res => {
 		res(port);
 	});
 });
-Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(res => {
+Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
+	await Promise.all(Object.keys(NodeMap).map(node => Wormhole.sendToNode(node, event, msg)));
 	res();
 });
 Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res => {
@@ -88,8 +89,6 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 	while (notOK && count > 0) {
 		let conn = conns.choose(true);
 		if (!conn) conn = conns.choose(false);
-		console.log(conns.sockets);
-		console.log(conns.getAll());
 		console.log('发送数据至 ' + conn.host + ':' + conn.port + ' (' + node + ')');
 		done = await Wormhole.sendToAddr(conns, conn, msg, encrypt);
 		conns.record(conn.host, conn.port, done, msgLen, false);
