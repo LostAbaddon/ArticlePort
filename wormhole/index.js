@@ -90,9 +90,13 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 		let conn = conns.choose(true);
 		if (!conn) conn = conns.choose(false);
 		console.log('>>>>>>>>>>>>>>>>>', conns.getAll().length, conn.weight);
+		if (!conn.host) {
+			console.log(conn);
+			console.log(conns.getAll());
+		}
 		console.log('发送数据至 ' + conn.host + ':' + conn.port + ' (' + node + ')');
 		done = await Wormhole.sendToAddr(conns, conn, msg, encrypt);
-		conns.record(conn.host, conn.port, done, msgLen, false);
+		conns.record(conn.host, conn.port, done, done ? msgLen : 0, false);
 		notOK = !done;
 		count --;
 	}
