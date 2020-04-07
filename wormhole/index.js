@@ -62,7 +62,7 @@ Wormhole.createServer = port => new Promise(res => {
 		console.error('>>>> TCP 服务出错 <<<<');
 		console.error(err);
 		delayAction.push('createServer');
-		Wormhole.timer(delayHandler, 1000);
+		setTimeout(delayHandler, 1000);
 	});
 	// 绑定监听端口
 	Wormhole.server.listen(port, () => {
@@ -89,6 +89,7 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 	while (notOK && count > 0) {
 		let conn = conns.choose(true);
 		if (!conn) conn = conns.choose(false);
+		console.log('>>>>>>>>>>>>>>>>>', conns.getAll().length, conn.weight);
 		console.log('发送数据至 ' + conn.host + ':' + conn.port + ' (' + node + ')');
 		done = await Wormhole.sendToAddr(conns, conn, msg, encrypt);
 		conns.record(conn.host, conn.port, done, msgLen, false);
@@ -161,7 +162,7 @@ Wormhole.shakeHand = node => new Promise(async res => {
 	catch (err) {
 		console.error('查询节点(' + node + ')可用连接失败：' + err.message);
 		delayAction.push(['shakeHand', node]);
-		Wormhole.timer(delayHandler, 1000 * 30);
+		setTimeout(delayHandler, 1000 * 30);
 		res();
 		return;
 	}

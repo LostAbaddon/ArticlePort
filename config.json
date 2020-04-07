@@ -3,5 +3,6 @@
 	"user": "cfg",
 	"name": "LostAbaddon",
 	"port": 8001,
+	"connectionLimit": 100,
 	"storage": "rooms"
 }
