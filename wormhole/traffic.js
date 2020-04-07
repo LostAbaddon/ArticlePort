@@ -1,6 +1,6 @@
 class UserTraffic {
 	conns = {};
-	socket = null;
+	sockets = [];
 	weight = 0;
 	count = 0;
 	total = 0;
@@ -46,8 +46,8 @@ class UserTraffic {
 		});
 		return list;
 	}
-	choose () {
-		var list = this.getAll();
+	choose (connected=false) {
+		var list = connected ? this.sockets : this.getAll();
 		var max = list[0].weight, result = [];
 		list.forEach(item => {
 			if (item.weight > max) {
@@ -141,6 +141,7 @@ class NodeTraffic {
 }
 class ConnTraffic {
 	port = 0;
+	socket = null;
 	weight = 0;
 	count = 0;
 	total = 0;
@@ -159,7 +160,8 @@ class ConnTraffic {
 			this.weight ++;
 		}
 		else {
-			this.weight --;
+			if (this.weight < 0) this.weight --;
+			else this.weight = Math.floor(this.weight / 2) - 1;
 		}
 		if (isIn) {
 			this.incoming += bytes;

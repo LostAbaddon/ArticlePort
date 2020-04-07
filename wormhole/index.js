@@ -44,55 +44,65 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 	if (!conns) return res();
 	var count = conns.getAll().length;
 	if (count === 0) return res();
-	var notOK = true, result;
+	var notOK = true, done;
 
 	msg = global.NodeConfig.node.id + ':' + (event || 'message') + ':' + msg;
 	msg = Uint8Array.fromString(msg);
 	var msgLen = msg.length;
 
 	while (notOK && count > 0) {
-		let conn = conns.choose();
+		let conn = conns.choose(true);
+		if (!conn) conn = conns.choose(false);
+		console.log('====================================');
+		console.log(conns.sockets);
+		console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 		console.log(conns.getAll());
 		console.log('::::', node, conn.host, conn.port);
-		result = await Wormhole.sendToAddr(conns, conn, msg, encrypt);
-		console.log("    ", result)
-		notOK = !result.ok;
+		done = await Wormhole.sendToAddr(conns, conn, msg, encrypt);
+		conns.record(conn.host, conn.port, done, msgLen, false);
+		console.log("    ", done);
+		notOK = !done;
 		count --;
 	}
 	res(result);
 });
 Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
-	console.log('Send ' + event + '-msg To:', conn.host, conn.port);
-
-	if (!!info.socket) {
-		socket.resMap.push(res);
-		info.socket.write(Uint8Array.fromString(msg), (...args) => {
-			console.log('xxxxxxxx   1', args, msgLen);
+	var item = info.getConn(conn.host).getConn(conn.port);
+	if (!!item.socket) {
+		item.socket.resList.push(res);
+		item.socket.write(Uint8Array.fromString(msg), (...args) => {
+			console.log('xxxxxxxx   1', args);
+			item.socket.resList.remove(res);
 			res(true);
 		});
 		return;
 	}
 
 	var socket = Net.createConnection(conn.port, conn.host, () => {
-		info.socket = socket;
-		socket.resMap = [res];
+		item.socket = socket;
+		socket.resList = [res];
+		info.sockets.push(item);
 		socket.on('error', err => {
 			console.error('通讯连接出错：' + err.message);
 			socket.end();
-			info.socket = null;
-			socket.resMap.forEach(res => res(false));
+			info.sockets.remove(item);
+			item.socket = undefined;
+			socket.resList.forEach(res => res(false));
+			delete socket.resList;
 		});
 		socket.write(msg, (...args) => {
 			console.log('xxxxxxxx   2', args);
-			socket.resMap.remove(res);
+			socket.resList.remove(res);
 			res(true);
 		});
 	});
 	socket.on('error', err => {
 		console.error('通讯连接出错：' + err.message);
 		socket.end();
-		info.socket = null;
-		socket.resMap.forEach(res => res(false));
+		info.sockets.remove(item);
+		item.socket = undefined;
+		socket.resList.forEach(res => res(false));
+		delete socket.resList;
 	});
 });
 Wormhole.alohaKosmos = () => new Promise(async res => {
