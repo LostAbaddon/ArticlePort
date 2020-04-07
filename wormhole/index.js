@@ -87,7 +87,7 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 			socket.end();
 			info.sockets.remove(item);
 			item.socket = undefined;
-			socket.resList.forEach(res => res(false));
+			if (!!socket.resList) socket.resList.forEach(res => res(false));
 			delete socket.resList;
 		});
 		socket.write(msg, (...args) => {
@@ -101,7 +101,7 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 		socket.end();
 		info.sockets.remove(item);
 		item.socket = undefined;
-		socket.resList.forEach(res => res(false));
+		if (!!socket.resList) socket.resList.forEach(res => res(false));
 		delete socket.resList;
 	});
 });
