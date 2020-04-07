@@ -64,7 +64,7 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 		notOK = !done;
 		count --;
 	}
-	res(result);
+	res(done);
 });
 Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	var item = info.getConn(conn.host).getConn(conn.port);
