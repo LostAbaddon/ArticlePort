@@ -49,6 +49,11 @@ Wormhole.createServer = port => new Promise(res => {
 				NodeMap[node] = user;
 			}
 			user.record(address, port, true, len, true);
+			var conn = user.getConn(address).getConn(port);
+			conn.socket = remote;
+			socket.resList = socket.resList || [];
+			if (!user.sockets.includes(conn)) user.sockets.push(conn);
+
 			action = Responsor[action];
 			if (!action) return;
 			action(node, msg);
@@ -90,10 +95,6 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 		let conn = conns.choose(true);
 		if (!conn) conn = conns.choose(false);
 		console.log('>>>>>>>>>>>>>>>>>', conns.getAll().length, conn.weight);
-		if (!conn.host) {
-			console.log(conn);
-			console.log(conns.getAll());
-		}
 		console.log('发送数据至 ' + conn.host + ':' + conn.port + ' (' + node + ')');
 		done = await Wormhole.sendToAddr(conns, conn, msg, encrypt);
 		conns.record(conn.host, conn.port, done, done ? msgLen : 0, false);
@@ -109,9 +110,9 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 		item.socket.write(msg, err => {
 			if (!!err) {
 				console.error('发送数据至 ' + conn.host + ':' + conn.port + ' 时出错：' + err.message);
-				socket.end();
-				if (!!socket.resList) socket.resList.forEach(res => res(false));
-				delete socket.resList;
+				item.socket.end();
+				if (!!item.socket.resList) item.socket.resList.forEach(res => res(false));
+				delete item.socket.resList;
 				item.socket = undefined;
 				info.sockets.remove(item);
 				return;
@@ -142,6 +143,19 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 		});
 	});
 	socket.resList = [res];
+	socket.on('data', msg => {
+		var len = msg.length;
+		msg = msg.toString();
+		msg = msg.split(':');
+		var node = msg[0];
+		var action = msg[1];
+		msg = msg[2];
+		if (!node || !action) return;
+		info.record(conn.host conn.port, true, len, true);
+		action = Responsor[action];
+		if (!action) return;
+		action(node, msg);
+	});
 	socket.on('error', err => {
 		console.error('通讯连接出错：' + err.message);
 		socket.end();

@@ -24,6 +24,7 @@ class UserTraffic {
 		return conn;
 	}
 	record (host, port, success, bytes, isIn) {
+		if (!success) bytes = 0;
 		this.#changed = true;
 		this.count ++;
 		this.total += bytes;
@@ -93,7 +94,7 @@ class NodeTraffic {
 	getConn (port) {
 		var conn = this.conns[port];
 		if (!!conn) return conn;
-		conn = new ConnTraffic(port);
+		conn = new ConnTraffic(this.host, port);
 		this.conns[port] = conn;
 		return conn;
 	}
@@ -145,6 +146,7 @@ class NodeTraffic {
 	}
 }
 class ConnTraffic {
+	host = '';
 	port = 0;
 	socket = null;
 	weight = 0;
@@ -152,12 +154,15 @@ class ConnTraffic {
 	total = 0;
 	incoming = 0;
 	outcoming = 0;
+	last = 0;
 	#rate = 0;
 	#changed = false;
-	constructor (port) {
+	constructor (host, port) {
+		this.host = host;
 		this.port = port;
 	}
 	record (success, bytes, isIn) {
+		if (success) this.last = Date.now();
 		this.#changed = true;
 		this.count ++;
 		this.total += bytes;
