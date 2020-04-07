@@ -9,9 +9,17 @@ const delayAction = [];
 const delayHandler = () => {
 	var list = delayAction.splice(0, delayAction.length);
 	list.forEach(action => {
-		var cb = Wormhole[action];
-		if (!cb) return;
-		cb();
+		if (Array.isArray(action)) {
+			let cb = action.splice(0, 1);
+			cb = Wormhole[action];
+			if (!cb) return;
+			cb(...action);
+		}
+		else {
+			let cb = Wormhole[action];
+			if (!cb) return;
+			cb();
+		}
 	});
 };
 
@@ -153,6 +161,8 @@ Wormhole.shakeHand = node => new Promise(async res => {
 	}
 	catch (err) {
 		console.error('查询节点(' + node + ')可用连接失败：' + err.message);
+		delayAction.push(['shakeHand', node]);
+		Wormhole.timer(delayHandler, 1000 * 30);
 		res();
 		return;
 	}
