@@ -48,6 +48,7 @@ class UserTraffic {
 	}
 	choose (connected=false) {
 		var list = connected ? this.sockets : this.getAll();
+		if (!list || list.length === 0) return undefined;
 		var max = list[0].weight, result = [];
 		list.forEach(item => {
 			if (item.weight > max) {
