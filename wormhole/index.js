@@ -33,6 +33,7 @@ Wormhole.createServer = port => new Promise(res => {
 		var ip4 = address.match(/\d+\.\d+\.\d+\.\d+/);
 		if (!!ip4) address = ip4[0];
 		var port = remote.remotePort;
+		var user, conn;
 		console.log('与远端建立连接:' + address + ':' + port);
 
 		remote.on('data', msg => {
@@ -43,15 +44,15 @@ Wormhole.createServer = port => new Promise(res => {
 			var action = msg[1];
 			msg = msg[2];
 			if (!node || !action) return;
-			var user = NodeMap[node];
+			user = NodeMap[node];
 			if (!user) {
 				user = new UserTraffic(node);
 				NodeMap[node] = user;
 			}
 			user.record(address, port, true, len, true);
-			var conn = user.getConn(address).getConn(port);
+			conn = user.getConn(address).getConn(port);
 			conn.socket = remote;
-			socket.resList = socket.resList || [];
+			remote.resList = remote.resList || [];
 			if (!user.sockets.includes(conn)) user.sockets.push(conn);
 
 			action = Responsor[action];
@@ -61,6 +62,11 @@ Wormhole.createServer = port => new Promise(res => {
 		remote.on('error', err => {
 			console.error('远端通道关闭 (' + address + ':' + port + ')');
 			remote.end();
+			if (!!remote.resList) remote.resList.forEach(res => res(false));
+			delete remote.resList;
+
+			conn.socket = undefined;
+			user.sockets.remove(conn);
 		});
 	});
 	Wormhole.server.on('error', err => {
