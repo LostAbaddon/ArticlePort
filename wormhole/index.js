@@ -20,12 +20,34 @@ Wormhole.init = port => new Promise(async res => {
 	res(port);
 });
 Wormhole.createServer = port => new Promise(res => {
-	Wormhole.server = Net.createServer(conn => {
-		console.log('On Connect:', conn.remoteAddress, conn.remotePort);
+	Wormhole.server = Net.createServer(remote => {
+		var address = remote.remoteAddress;
+		var ip4 = address.match(/\d+\.\d+\.\d+\.\d+/);
+		if (!!ip4) address = ip4[0];
+		var port = remote.remotePort;
+		console.log('与远端建立连接:' + address + ':' + port);
 
-		conn.on('error', err => {
-			console.error(err.message);
-			conn.end();
+		remote.on('data', msg => {
+			var len = msg.length;
+			msg = msg.toString();
+			msg = msg.split(':');
+			var node = msg[0];
+			var action = msg[1];
+			msg = msg[2];
+			if (!node || !action) return;
+			var user = NodeMap[node];
+			if (!user) {
+				user = new UserTraffic(node);
+				NodeMap[node] = user;
+			}
+			user.record(address, port, true, len, true);
+			action = Responsor[action];
+			if (!action) return;
+			action(node, msg);
+		});
+		remote.on('error', err => {
+			console.error('远端通道关闭 (' + address + ':' + port + ')');
+			remote.end();
 		});
 	});
 	Wormhole.server.on('error', err => {
@@ -136,7 +158,7 @@ Wormhole.shakeHand = node => new Promise(async res => {
 
 	var traffic = NodeMap[node];
 	if (!traffic) {
-		traffic = new UserTraffic();
+		traffic = new UserTraffic(node);
 		NodeMap[node] = traffic;
 		conns.forEach(conn => {
 			traffic.prepare(conn.ip, conn.port);
@@ -154,7 +176,7 @@ Wormhole.shakeHand = node => new Promise(async res => {
 		});
 	}
 
-	await Wormhole.sendToNode(node, 'shakehand', global.NodeConfig.node.id);
+	await Wormhole.sendToNode(node, 'shakehand', global.NodeConfig.hash);
 	res();
 });
 

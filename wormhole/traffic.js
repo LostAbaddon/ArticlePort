@@ -1,4 +1,5 @@
 class UserTraffic {
+	id = '';
 	conns = {};
 	sockets = [];
 	weight = 0;
@@ -8,6 +9,9 @@ class UserTraffic {
 	outcoming = 0;
 	#rate = 0;
 	#changed = false;
+	constructor (hash) {
+		this.id = hash;
+	}
 	prepare (host, port) {
 		var conn = this.getConn(host);
 		conn.getConn(port);
