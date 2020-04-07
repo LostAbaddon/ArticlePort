@@ -1,6 +1,6 @@
 const Responsor = {};
 
-Responsor.shakehand = (sender, msg) => {
+Responsor.shakehand = async (sender, msg) => {
 	console.log('获得节点 (' + sender + ') 新内容哈希 ===> ' + msg);
 	global.Wormhole.sendToNode(sender, 'replyshakehand', global.NodeConfig.hash);
 
