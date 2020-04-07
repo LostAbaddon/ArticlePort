@@ -94,7 +94,6 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 	var notOK = true, done;
 
 	msg = global.NodeConfig.node.id + ':' + (event || 'message') + ':' + msg;
-	msg = Uint8Array.fromString(msg);
 	var msgLen = msg.length;
 
 	while (notOK && count > 0) {
@@ -113,7 +112,8 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	var item = info.getConn(conn.host).getConn(conn.port);
 	if (!!item.socket) {
 		item.socket.resList.push(res);
-		item.socket.write(msg, err => {
+		console.log('[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[', msg);
+		item.socket.write(msg, 'utf8', err => {
 			if (!!err) {
 				console.error('发送数据至 ' + conn.host + ':' + conn.port + ' 时出错：' + err.message);
 				item.socket.end();
@@ -133,7 +133,8 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	var socket = Net.createConnection(conn.port, conn.host, () => {
 		item.socket = socket;
 		info.sockets.push(item);
-		socket.write(msg, err => {
+		console.log('..................................', msg);
+		socket.write(msg, 'utf8', err => {
 			if (!!err) {
 				console.error('发送数据至 ' + conn.host + ':' + conn.port + ' 时出错：' + err.message);
 				socket.end();
@@ -143,7 +144,7 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 				info.sockets.remove(item);
 				return;
 			}
-			if (!socket.resList) return;
+			if (!socket.resList) return res(false);
 			socket.resList.remove(res);
 			res(true);
 		});
