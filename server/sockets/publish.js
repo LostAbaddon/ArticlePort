@@ -76,6 +76,7 @@ const callback = async (data, socket, event) => {
 		host: global.NodeConfig.node.id,
 		pack: ContentManager.packID(channel)
 	});
+	global.Wormhole.broadcast('StarPortUpdated', result);
 
 	try {
 		result = await IPFS.publish(result);

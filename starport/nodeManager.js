@@ -17,7 +17,7 @@ const saveAndPublish = (needSave=true) => new Promise(async res => {
 		}
 		catch (err) {
 			console.error('保存节点信息时出错：' + err.message);
-			return;
+			return res(null);
 		}
 	}
 
@@ -27,11 +27,13 @@ const saveAndPublish = (needSave=true) => new Promise(async res => {
 	}
 	catch (err) {
 		console.error('更新目录失败：' + err.message);
-		return;
+		return res(null);
 	}
 	console.log('更新内容星站：' + hash);
 	global.NodeConfig.hash = hash;
-	res();
+	res(hash);
+
+	global.Wormhole.broadcast('StarPortUpdated', hash);
 	try {
 		await IPFS.publish(hash);
 	}
@@ -40,7 +42,6 @@ const saveAndPublish = (needSave=true) => new Promise(async res => {
 		return;
 	}
 	console.log('星站内容已更新！ (' + global.NodeConfig.node.id + ' <==== ' + hash + ')');
-	global.Wormhole.broadcast('StarPortUpdated', hash);
 });
 
 Manager.init = () => new Promise(async (res, rej) => {
