@@ -5,7 +5,7 @@ const getJSON = _('Utils.getJSON');
 const saveFile = _('Utils.saveFile');
 
 const RetryDelay = 1000 * 60;
-const UpdateDelay = 1000 * 60;
+const UpdateDelay = 1000 * 60 * 10;
 const ResponsingTimeout = 1000 * 30;
 const PublishTimeout = 1000 * 60 * 3;
 const ResourceExpire = 1000 * 60 * 60 * 24; // 一周后自动删除资源

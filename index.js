@@ -29,7 +29,9 @@ const clp = CLP({
 })
 .describe(setStyle(CSP_Name + " v" + CSP_Version, "bold"))
 .addOption('--config -c <path> >> 指定配置文件')
+.addOption('--force -f >> 强制重新打包')
 .addOption('--dev >> 开发模式，不自动 build Vue 和启动 IPFS daemon')
+.addOption('--nowormhole -n >> 不启用虫洞网络')
 .on('command', async (param, command) => {
 	var cfgPath = CSP_Default_Config;
 	if (param.config) cfgPath = param.path || CSP_Default_Config;
@@ -61,7 +63,7 @@ const clp = CLP({
 	if (!param.dev) {
 		global.NodeConfig.webPort = global.NodeConfig.port;
 		// 检查前端页面是否准备就绪
-		actions.push(checkFrontend());
+		actions.push(checkFrontend(param.force));
 		// 启动 IPFS
 		actions.push(IPFS.start(config.port - 4000));
 	}
@@ -84,8 +86,10 @@ const clp = CLP({
 	actions = await Promise.all(actions);
 
 	// 启动虫洞网络
-	await global.Wormhole.init(config.port + 100);
-	global.Wormhole.alohaKosmos(); // 虫洞网广播连线
+	if (!param.nowormhole) {
+		await global.Wormhole.init(config.port + 100);
+		global.Wormhole.alohaKosmos(); // 虫洞网广播连线
+	}
 
 	webServer(config.port, () => {
 		console.log(setStyle('星站开始工作！', 'bold'));
@@ -143,7 +147,11 @@ const readConfig = filepath => new Promise(async (res, rej) => {
 	};
 	res(config);
 });
-const checkFrontend = () => new Promise((res, rej) => {
+const checkFrontend = force => new Promise((res, rej) => {
+	if (force) {
+		console.log('重新部署前端页面，请稍等……');
+		return buildFrontend(res);
+	}
 	FS.readdir('./dist', (err, ctx) => {
 		if (!!err) {
 			if (err.code === 'ENOENT') {

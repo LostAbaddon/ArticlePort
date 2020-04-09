@@ -54,16 +54,35 @@ class UserTraffic {
 	choose (connected=false) {
 		var list = connected ? this.sockets : this.getAll();
 		if (!list || list.length === 0) return undefined;
-		var max = list[0].weight, result = [];
+		var max = list[0].weight, result = [], lans = [], locals = [];
 		list.forEach(item => {
 			if (item.weight > max) {
 				max = item.weight;
-				result = [item];
+				result = [];
+				lans = [];
+				locals = [];
 			}
 			else if (item.weight < max) return;
-			else result.push(item);
+			if (item.type === 1) lans.push(item);
+			else if (item.type === 2) locals.push(item);
+			else if (item.type === 3) result.push(item);
+			else {
+				result.push(item);
+				locals.push(item);
+				lans.push(item);
+			}
 		});
-		var len = result.length;
+		var len = locals.length;
+		if (len > 0) {
+			len = Math.floor(Math.random() * len);
+			return locals[len];
+		}
+		len = lans.length;
+		if (len > 0) {
+			len = Math.floor(Math.random() * len);
+			return lans[len];
+		}
+		len = result.length;
 		len = Math.floor(Math.random() * len);
 		return result[len];
 	}
@@ -81,6 +100,7 @@ class UserTraffic {
 class NodeTraffic {
 	conns = {};
 	host = '';
+	type = 0; // 0: 未定；1：局域网；2：本机；3：远端
 	weight = 0;
 	count = 0;
 	total = 0;
@@ -90,11 +110,21 @@ class NodeTraffic {
 	#changed = false;
 	constructor (host) {
 		this.host = host;
+		if (!!host.match(/^(0\.|127\.|::|0:0:0:0:0:0:0:)/i)) {
+			this.type = 2;
+		}
+		else if (!!host.match(/^(192\.|fe\d\d:)/i)) {
+			this.type = 1;
+		}
+		else {
+			this.type = 3;
+		}
 	}
 	getConn (port) {
 		var conn = this.conns[port];
 		if (!!conn) return conn;
 		conn = new ConnTraffic(this.host, port);
+		conn.type = this.type;
 		this.conns[port] = conn;
 		return conn;
 	}
@@ -123,6 +153,7 @@ class NodeTraffic {
 			var conn = this.conns[port];
 			var item = {};
 			item.host = this.host;
+			item.type = this.type;
 			item.port = conn.port;
 			item.weight = conn.weight + count;
 			item.count = conn.count;
@@ -147,6 +178,7 @@ class NodeTraffic {
 }
 class ConnTraffic {
 	host = '';
+	type = 0;
 	port = 0;
 	socket = null;
 	weight = 0;

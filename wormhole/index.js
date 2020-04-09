@@ -4,6 +4,9 @@ const Responsor = require('./responsor');
 
 const Wormhole = {};
 const NodeMap = {};
+const ReAlohaDelay = 1000 * 60 * 3;
+
+var timerAloha = null;
 
 const delayAction = [];
 const delayHandler = () => {
@@ -180,11 +183,18 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	});
 });
 Wormhole.alohaKosmos = () => new Promise(async res => {
+	if (!!timerAloha) {
+		clearTimeout(timerAloha);
+		timerAloha = null;
+	}
 	var nodes = global.NodeManager.getNodeList();
 	if (nodes.length === 0) return res();
 
 	await Promise.all(nodes.map(node => Wormhole.shakeHand(node.id)));
 	res();
+
+	if (!!timerAloha) clearTimeout(timerAloha);
+	timerAloha = setTimeout(Wormhole.alohaKosmos, ReAlohaDelay);
 });
 Wormhole.shakeHand = node => new Promise(async res => {
 	var conns;
