@@ -107,6 +107,9 @@ Manager.removeNode = node => new Promise(async (res, rej) => {
 	}
 	res();
 });
+Manager.didSubscribed = node => {
+	return !!SelfInfo.connections[node];
+};
 Manager.changeNodeName = (node, name) => new Promise(async res => {
 	var old = SelfInfo.connections[node];
 	if (old === name) return res();
