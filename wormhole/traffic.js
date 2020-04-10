@@ -224,8 +224,40 @@ class ConnTraffic {
 	}
 }
 
+const ConnManager = {
+	get count () {
+		return ConnManager.list.length;
+	}
+};
+ConnManager.list = [];
+ConnManager.add = conn => {
+	if (ConnManager.list.includes(conn)) return;
+	ConnManager.list.push(conn);
+};
+ConnManager.del = conn => {
+	ConnManager.list.remove(conn);
+};
+ConnManager.closeOverCount = limit => {
+	if (ConnManager.count < limit) return;
+	var list = ConnManager.list.map(conn => [conn, 0]);
+	list.sort((ca, cb) => ca[0].rate - cb[0].rate);
+	list.forEach((item, i) => item[1] = 3 * i);
+	list.sort((ca, cb) => ca[0].last - cb[0].last);
+	list.forEach((item, i) => item[1] += 2 * i);
+	list.sort((ca, cb) => ca[0].weight - cb[0].weight);
+	list.forEach((item, i) => item[1] += i);
+	list.sort((ca, cb) => ca[1] - cb[1]);
+	list.splice(0, limit);
+	list.forEach(item => {
+		var socket = item[0].socket;
+		if (!socket) return;
+		socket.end();
+	});
+};
+
 module.exports = {
 	UserTraffic,
 	NodeTraffic,
-	ConnTraffic
+	ConnTraffic,
+	ConnManager
 };
