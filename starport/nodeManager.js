@@ -152,9 +152,9 @@ Manager.mergeSelfInfo = info => new Promise(async res => {
 	res();
 });
 Manager.getSelfInfo = () => SelfInfo;
-Manager.update = () => new Promise(async (res, rej) => {
+Manager.update = (needSave=false) => new Promise(async (res, rej) => {
 	try {
-		await saveAndPublish(false);
+		await saveAndPublish(needSave);
 	}
 	catch (err) {
 		rej(err);

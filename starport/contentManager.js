@@ -554,7 +554,14 @@ Manager.set = (channel, id, info) => new Promise(async res => {
 	var added = TimeLine.main.add(channel, info);
 	if (added) {
 		TimeLine.main.update();
-		await TimeLine.main.toFile(channel);
+		try {
+			await TimeLine.main.toFile(channel);
+		}
+		catch (err) {
+			console.error('保存到文件出错：' + err.message);
+			return res(false);
+		}
+		global.NodeManager.update(true);
 		IO.broadcast('TimelineUpdated');
 	}
 	res(added);
@@ -594,7 +601,14 @@ Manager.flush = channel => new Promise(async res => {
 	var ch = TimeLine.main.channels[channel];
 	if (!ch) return res();
 
-	await ch.toFile();
+	try {
+		await ch.toFile();
+	}
+	catch (err) {
+		console.error('保存到文件出错：' + err.message);
+		return res();
+	}
+	global.NodeManager.update(true);
 	res();
 });
 Manager.getTimeline = channels => {
