@@ -129,20 +129,21 @@ Manager.changeNodeName = (node, name) => new Promise(async res => {
 	res(true);
 });
 Manager.changeNodeInfo = (node, name, hash, stamp) => new Promise(async res => {
-	var old = SelfInfo.connections[node];
-	if (!old) old = {name, stamp: 0};
-	else if (String.is(old)) old = {name: old};
+	var item = SelfInfo.connections[node];
+	if (!item) item = {name, stamp: 0};
+	else if (String.is(item)) item = {name: item, stamp: 0};
 	var changed = false;
-	if (old.name !== name) {
+	if (item.name !== name) {
 		changed = true;
-		old.name = name;
+		item.name = name;
 	}
-	if (old.stamp < stamp) {
+	if (item.stamp < stamp) {
 		changed = true;
-		old.hash = hash;
-		old.stamp = stamp;
+		item.hash = hash;
+		item.stamp = stamp;
 	}
 	if (!changed) return res(false);
+	SelfInfo.connections[node] = item;
 
 	try {
 		await saveAndPublish(true);
