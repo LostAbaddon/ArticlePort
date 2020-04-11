@@ -666,7 +666,7 @@ global.ContentUpdated = async (node, hash, remotePath) => {
 		console.log('更新节点信息(' + node + ')');
 		await Promise.all([
 			saveFile(localFile, JSON.stringify(remoteInfo)),
-			global.NodeManager.changeNodeName(node, remoteInfo.name)
+			global.NodeManager.changeNodeInfo(node, remoteInfo.name, hash, remoteInfo.signin)
 		]);
 	}
 

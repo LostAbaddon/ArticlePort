@@ -76,7 +76,9 @@ Manager.init = () => new Promise(async (res, rej) => {
 });
 Manager.getNodeList = () => {
 	return Object.keys(SelfInfo.connections || {}).map(id => {
-		return { name: SelfInfo.connections[id], id };
+		var name = SelfInfo.connections[id];
+		name = name.name || name.toString();
+		return { name, id };
 	});
 };
 Manager.addNode = node => new Promise(async (res, rej) => {
@@ -86,7 +88,7 @@ Manager.addNode = node => new Promise(async (res, rej) => {
 
 	IPFS.subscribe(node);
 	try {
-		await saveAndPublish();
+		await saveAndPublish(true);
 	}
 	catch (err) {
 		console.error('添加节点（' +  node + '）时：' + err.message);
@@ -100,7 +102,7 @@ Manager.removeNode = node => new Promise(async (res, rej) => {
 
 	IPFS.unsubscribe(node);
 	try {
-		await saveAndPublish();
+		await saveAndPublish(true);
 	}
 	catch (err) {
 		console.error('删除节点（' +  node + '）时：' + err.message);
@@ -112,16 +114,44 @@ Manager.didSubscribed = node => {
 };
 Manager.changeNodeName = (node, name) => new Promise(async res => {
 	var old = SelfInfo.connections[node];
-	if (old === name) return res();
-	SelfInfo.connections[node] = name;
+	if (!!old && (old === name || old.name === name)) return res(false);
+	if (!old) old = {name};
+	else if (String.is(old)) old = {name};
+	else old.name = name;
 
 	try {
-		await saveAndPublish();
+		await saveAndPublish(true);
 	}
 	catch (err) {
 		console.error('修改节点名（' + node + '）字时出错：' + err.message);
+		return res(false);
 	}
-	res();
+	res(true);
+});
+Manager.changeNodeInfo = (node, name, hash, stamp) => new Promise(async res => {
+	var old = SelfInfo.connections[node];
+	if (!old) old = {name, stamp: 0};
+	else if (String.is(old)) old = {name: old};
+	var changed = false;
+	if (old.name !== name) {
+		changed = true;
+		old.name = name;
+	}
+	if (old.stamp < stamp) {
+		changed = true;
+		old.hash = hash;
+		old.stamp = stamp;
+	}
+	if (!changed) return res(false);
+
+	try {
+		await saveAndPublish(true);
+	}
+	catch (err) {
+		console.error('修改节点内容地址（' + node + '）时出错：' + err.message);
+		return res(false);
+	}
+	res(true);
 });
 Manager.getNodeName = node => {
 	if (node === global.NodeConfig.node.id) return global.NodeConfig.name;
