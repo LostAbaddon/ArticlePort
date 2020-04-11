@@ -7,6 +7,7 @@ const NodeMap = {};
 const ReAlohaDelay = 1000 * 60 * 3;
 
 var timerAloha = null;
+var started = false;
 
 const delayAction = [];
 const delayHandler = () => {
@@ -28,6 +29,7 @@ const delayHandler = () => {
 
 Wormhole.init = port => new Promise(async res => {
 	port = await Wormhole.createServer(port);
+	started = true;
 	res(port);
 });
 Wormhole.createServer = port => new Promise(res => {
@@ -94,10 +96,13 @@ Wormhole.createServer = port => new Promise(res => {
 	});
 });
 Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
+	if (!started) return res();
 	await Promise.all(Object.keys(NodeMap).map(node => Wormhole.sendToNode(node, event, msg)));
 	res();
 });
 Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res => {
+	if (!started) return res(false);
+
 	var conns = NodeMap[node];
 	if (!conns) return res();
 	var count = conns.getAll().length * 2;
@@ -121,6 +126,8 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 	res(done);
 });
 Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
+	if (!started) return res(false);
+
 	ConnManager.closeOverCount(global.NodeConfig.connectionLimit);
 
 	var item = info.getConn(conn.host).getConn(conn.port);

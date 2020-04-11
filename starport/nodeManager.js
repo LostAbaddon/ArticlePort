@@ -9,7 +9,7 @@ const SelfInfo = {};
 var configFilepath = '';
 var storagePath = '';
 
-const saveAndPublish = (needSave=true) => new Promise(async res => {
+const saveAndPublish = (needSave=true, broadcast=true) => new Promise(async res => {
 	if (needSave) {
 		SelfInfo.signin = Date.now();
 		try {
@@ -32,6 +32,8 @@ const saveAndPublish = (needSave=true) => new Promise(async res => {
 	console.log('更新内容星站：' + hash);
 	global.NodeConfig.hash = hash;
 	res(hash);
+
+	if (!broadcast) return;
 
 	global.Wormhole.broadcast('StarPortUpdated', hash);
 	try {
@@ -120,7 +122,7 @@ Manager.changeNodeName = (node, name) => new Promise(async res => {
 	else old.name = name;
 
 	try {
-		await saveAndPublish(true);
+		await saveAndPublish(true, false);
 	}
 	catch (err) {
 		console.error('修改节点名（' + node + '）字时出错：' + err.message);
@@ -146,7 +148,7 @@ Manager.changeNodeInfo = (node, name, hash, stamp) => new Promise(async res => {
 	SelfInfo.connections[node] = item;
 
 	try {
-		await saveAndPublish(true);
+		await saveAndPublish(true,false);
 	}
 	catch (err) {
 		console.error('修改节点内容地址（' + node + '）时出错：' + err.message);
