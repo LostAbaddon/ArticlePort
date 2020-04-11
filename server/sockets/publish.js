@@ -54,6 +54,7 @@ const callback = async (data, socket, event) => {
 	}
 	console.log('新文件上传到星网成功：' + result);
 	info.hash = result;
+	global.Wormhole.broadcast('NewContent', result);
 
 	// 更新本地记录，同时广播到前端
 	await ContentManager.set(channel, info.id, info);
@@ -76,7 +77,6 @@ const callback = async (data, socket, event) => {
 		host: global.NodeConfig.node.id,
 		pack: ContentManager.packID(channel)
 	});
-	global.Wormhole.broadcast('StarPortUpdated', result);
 
 	try {
 		result = await IPFS.publish(result);

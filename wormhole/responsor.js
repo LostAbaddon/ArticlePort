@@ -22,5 +22,8 @@ Responsor.StarPortUpdated = async (sender, msg) => {
 	console.log('节点 (' + sender + ') 更新内容哈希 :::: ' + msg);
 	if (global.NodeManager.didSubscribed(sender)) getUserContent(sender, msg);
 };
+Responsor.NewContent = async (sender, msg) => {
+	console.log('节点 (' + sender + ') 发布新内容: ' + msg);
+};
 
 module.exports = Responsor;
