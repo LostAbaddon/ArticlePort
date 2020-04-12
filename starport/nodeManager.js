@@ -79,8 +79,9 @@ Manager.init = () => new Promise(async (res, rej) => {
 Manager.getNodeList = () => {
 	return Object.keys(SelfInfo.connections || {}).map(id => {
 		var name = SelfInfo.connections[id];
+		var port = name.port || -1;
 		name = name.name || name.toString();
-		return { name, id };
+		return { name, id, port };
 	});
 };
 Manager.addNode = node => new Promise(async (res, rej) => {
@@ -130,7 +131,7 @@ Manager.changeNodeName = (node, name) => new Promise(async res => {
 	}
 	res(true);
 });
-Manager.changeNodeInfo = (node, name, hash, stamp) => new Promise(async res => {
+Manager.changeNodeInfo = (node, name, hash, stamp, pubPort) => new Promise(async res => {
 	var item = SelfInfo.connections[node];
 	if (!item) item = {name, stamp: 0};
 	else if (String.is(item)) item = {name: item, stamp: 0};
@@ -143,6 +144,10 @@ Manager.changeNodeInfo = (node, name, hash, stamp) => new Promise(async res => {
 		changed = true;
 		item.hash = hash;
 		item.stamp = stamp;
+	}
+	if (item.port !== pubPort) {
+		changed = true;
+		item.port = pubPort;
 	}
 	if (!changed) return res(false);
 	SelfInfo.connections[node] = item;
@@ -162,7 +167,7 @@ Manager.getNodeName = node => {
 };
 Manager.mergeSelfInfo = info => new Promise(async res => {
 	info.signin = info.signin || 0;
-	if (info.signin <= SelfInfo) return res();
+	if (info.signin <= SelfInfo.singin) return res();
 	SelfInfo.name = info.name;
 	SelfInfo.connections = info.connections;
 	SelfInfo.signin = info.signin;

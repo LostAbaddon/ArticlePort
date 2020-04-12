@@ -79,5 +79,3 @@ Responsor.NewContent = async (sender, msg) => {
 };
 
 module.exports = Responsor;
-
-P(m, n N) = sum( P(x, (n - 1) N), x : {max(m - N + 1, 0), min(m, (n - 1) N - 1)} )

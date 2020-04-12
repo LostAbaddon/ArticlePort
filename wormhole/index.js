@@ -210,13 +210,13 @@ Wormhole.alohaKosmos = () => new Promise(async res => {
 	var nodes = global.NodeManager.getNodeList();
 	if (nodes.length === 0) return res();
 
-	await Promise.all(nodes.map(node => Wormhole.shakeHand(node.id)));
+	await Promise.all(nodes.map(node => Wormhole.shakeHand(node.id, node.port)));
 	res();
 
 	if (!!timerAloha) clearTimeout(timerAloha);
 	timerAloha = setTimeout(Wormhole.alohaKosmos, ReAlohaDelay);
 });
-Wormhole.shakeHand = node => new Promise(async res => {
+Wormhole.shakeHand = (node, port) => new Promise(async res => {
 	var conns;
 	try {
 		conns = await IPFS.getConnections(node);
@@ -234,13 +234,14 @@ Wormhole.shakeHand = node => new Promise(async res => {
 
 	var traffic = NodeMap[node];
 	if (!traffic) {
-		traffic = new UserTraffic(node);
+		traffic = new UserTraffic(node, port);
 		NodeMap[node] = traffic;
 		conns.forEach(conn => {
 			traffic.prepare(conn.ip, conn.port);
 		});
 	}
 	else {
+		traffic.changePublicPort(port);
 		traffic.getAll().forEach(conn => {
 			traffic.record(conn.host, conn.port, false, 0, true);
 		});

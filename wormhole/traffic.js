@@ -2,6 +2,7 @@ class UserTraffic {
 	id = '';
 	conns = {};
 	sockets = [];
+	defaultPort = -1;
 	weight = 0;
 	count = 0;
 	total = 0;
@@ -9,12 +10,28 @@ class UserTraffic {
 	outcoming = 0;
 	#rate = 0;
 	#changed = false;
-	constructor (hash) {
+	constructor (hash, port) {
 		this.id = hash;
+		if (port > 0) this.defaultPort = port;
+	}
+	changePublicPort (port) {
+		port = port * 1;
+		if (isNaN(port) || port <= 0 || port === this.defaultPort) return;
+		this.defaultPort = port;
+		Object.keys(this.conns).forEach(host => {
+			host = this.conns[host];
+			host.changePublicPort(port);
+		});
 	}
 	prepare (host, port) {
 		var conn = this.getConn(host);
-		conn.getConn(port);
+		if (this.defaultPort > 0) {
+			if (conn.type === 3) conn.getConn(this.defaultPort);
+			else conn.getConn(port);
+		}
+		else {
+			conn.getConn(port);
+		}
 	}
 	getConn (host) {
 		var conn = this.conns[host];
@@ -118,6 +135,22 @@ class NodeTraffic {
 		}
 		else {
 			this.type = 3;
+		}
+	}
+	changePublicPort (port) {
+		if (this.type !== 3) return;
+		var has = false;
+		Object.keys(this.conns).forEach(p => {
+			var conn = this.conns[p];
+			if (conn.port === port) {
+				has = true;
+				return;
+			}
+			if (!!conn.socket) return;
+			delete this.conns[p];
+		});
+		if (!has) {
+			this.getConn(port);
 		}
 	}
 	getConn (port) {
