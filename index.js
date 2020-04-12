@@ -87,7 +87,7 @@ const clp = CLP({
 
 	// 启动虫洞网络
 	if (!param.nowormhole) {
-		await global.Wormhole.init(config.port + 100);
+		await global.Wormhole.init(config.port + 100, global.NodeConfig.entrances);
 		global.Wormhole.alohaKosmos(); // 虫洞网广播连线
 	}
 

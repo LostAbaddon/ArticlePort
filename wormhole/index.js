@@ -8,6 +8,7 @@ const ReAlohaDelay = 1000 * 60 * 3;
 
 var timerAloha = null;
 var started = false;
+var bootstrapList = [];
 
 const delayAction = [];
 const delayHandler = () => {
@@ -27,7 +28,18 @@ const delayHandler = () => {
 	});
 };
 
-Wormhole.init = port => new Promise(async res => {
+Wormhole.init = (port, bootstraps) => new Promise(async res => {
+	(bootstraps || []).forEach(item => {
+		item = item.split('/');
+		if (item.length !== 2) return;
+		item[1] = item[1] * 1;
+		if (isNaN(item[1])) return;
+		var conn = new UserTraffic(item[0], item[1]);
+		conn.prepare(item[0], item[1]);
+		conn.host = item[0];
+		conn.port = item[1];
+		bootstrapList.push(conn);
+	});
 	port = await Wormhole.createServer(port);
 	started = true;
 	res(port);
@@ -210,7 +222,9 @@ Wormhole.alohaKosmos = () => new Promise(async res => {
 	var nodes = global.NodeManager.getNodeList();
 	if (nodes.length === 0) return res();
 
-	await Promise.all(nodes.map(node => Wormhole.shakeHand(node.id, node.port)));
+	var actions = nodes.map(node => Wormhole.shakeHand(node.id, node.port));
+	actions.push(Wormhole.shakeHand2Bootstraps());
+	await Promise.all(actions);
 	res();
 
 	if (!!timerAloha) clearTimeout(timerAloha);
@@ -254,6 +268,18 @@ Wormhole.shakeHand = (node, port) => new Promise(async res => {
 	}
 
 	await Wormhole.sendToNode(node, 'shakehand', global.NodeConfig.hash);
+	res();
+});
+Wormhole.shakeHand2Bootstraps = () => new Promise(async res => {
+	var msg = global.NodeConfig.node.id + ':shakehand:' + global.NodeConfig.hash;
+	var msgLen = msg.length;
+	msg = msgLen + ':' + msg;
+
+	var actions = bootstrapList.map(conn => {
+		console.log('xxxxxxxxxxxxxxxxxxxxxxxx 连接到入口节点 (' + conn.host + ':' + conn.port + ')');
+		return Wormhole.sendToAddr(conn, conn, msg);
+	});
+	await Promise.all(actions);
 	res();
 });
 

@@ -46,6 +46,7 @@ class UserTraffic {
 		this.count ++;
 		this.total += bytes;
 		if (success) {
+			if (this.weight < 0) this.weight = 0;
 			this.weight ++;
 		}
 		else {
@@ -166,6 +167,7 @@ class NodeTraffic {
 		this.count ++;
 		this.total += bytes;
 		if (success) {
+			if (this.weight < 0) this.weight = 0;
 			this.weight ++;
 		}
 		else {
@@ -232,6 +234,7 @@ class ConnTraffic {
 		this.count ++;
 		this.total += bytes;
 		if (success) {
+			if (this.weight < 0) this.weight = 0;
 			this.weight ++;
 		}
 		else {
