@@ -43,6 +43,7 @@ class Message {
 		m.stamp = this.stamp;
 		m.event = this.event;
 		m.message = this.message;
+		return m;
 	}
 }
 

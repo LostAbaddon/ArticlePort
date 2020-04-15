@@ -51,7 +51,7 @@ const parseMessage = msg => {
 	m.stamp = msg.stamp;
 	m.event = msg.event;
 	m.message = msg.message;
-	if (!msg.verify(keyUtil.getPubKey(m.sender))) return null;
+	if (!m.verify(keyUtil.getPubKey(m.sender))) return null;
 	return m;
 };
 
@@ -332,7 +332,6 @@ Wormhole.shakeHand = (node, port, msg) => new Promise(async res => {
 		});
 	}
 
-	console.log(msg);
 	await Wormhole.sendToNode(node, msg);
 	res();
 });
