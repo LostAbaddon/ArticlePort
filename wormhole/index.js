@@ -181,6 +181,7 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
 	else m.generate();
 	msg = JSON.stringify(m);
 	m = null;
+	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', msg);
 
 	await Promise.all(Object.keys(NodeMap).map(node => Wormhole.sendToNode(node, event, msg)));
 	res();
