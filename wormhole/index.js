@@ -35,16 +35,13 @@ const delayHandler = () => {
 };
 
 const parseMessage = msg => {
-	console.log('????????????????', msg)
 	try {
 		msg = msg.toString();
 		msg = JSON.parse(msg);
 	}
 	catch {
-		console.log('============================================   1')
 		return null;
 	}
-	console.log('============================================   2', msg)
 	if (MessageHistory.has(msg.mid)) return null;
 	MessageHistory.set(msg.mid, msg.stamp);
 
@@ -55,9 +52,7 @@ const parseMessage = msg => {
 	m.stamp = msg.stamp;
 	m.event = msg.event;
 	m.message = msg.message;
-	console.log('============================================   3')
 	if (!m.verify(keyUtil.getPubKey(m.sender))) return null;
-	console.log('============================================   4')
 	return m;
 };
 const dealMessage = msg => {
@@ -128,16 +123,12 @@ Wormhole.createServer = port => new Promise(res => {
 		console.log('与远端建立连接:' + address + ':' + port);
 
 		remote.on('data', msg => {
-			console.log('>>>>>>>>>>>>>>>>>>> step 1');
 			var len = msg.length;
 			msg = parseMessage(msg);
-			console.log('>>>>>>>>>>>>>>>>>>> step 2', msg);
 			if (!msg) return;
-			console.log('>>>>>>>>>>>>>>>>>>> step 3');
 
 			if (msg.event === 'shakehand') {
-				console.log('>>>>>>>>>>>>>>>>>>> step 4');
-				keyUtil.setPubKey(msg.sender, msg.key);
+				keyUtil.setPubKey(msg.sender, msg.message.key);
 			}
 
 			user = NodeMap[msg.sender];
@@ -151,7 +142,6 @@ Wormhole.createServer = port => new Promise(res => {
 			remote.resList = remote.resList || [];
 			if (!user.sockets.includes(conn)) user.sockets.push(conn);
 			ConnManager.add(conn);
-			console.log('>>>>>>>>>>>>>>>>>>> step 5');
 
 			dealMessage();
 		});
