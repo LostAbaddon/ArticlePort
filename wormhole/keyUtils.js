@@ -21,6 +21,7 @@ module.exports = {
 		return keyMap.get(cid);
 	},
 	setPubKey (cid, key) {
+		console.log('>>>>>>>>', cid, key);
 		try {
 			key = crypto.createPublicKey({
 				key: module.exports.unmarshal(key),
