@@ -1,5 +1,7 @@
+const crypto = require("crypto");
 const protobuf = require('protons');
 const keysPBM = protobuf(require('./keys.proto'));
+const keyMap = new Map();
 
 module.exports = {
 	marshal (key, type="RSA") {
@@ -14,5 +16,21 @@ module.exports = {
 		if (String.is(buf)) buf = Buffer.from(buf, 'base64');
 		const decoded = keysPBM.Key.decode(buf);
 		return decoded.Data;
+	},
+	getPubKey (cid) {
+		return keyMap.get(cid);
+	},
+	setPubKey (cid, key) {
+		try {
+			key = crypto.createPublicKey({
+				key: module.exports.unmarshal(key),
+				format: 'der',
+				type: 'spki'
+			});
+			keyMap.set(cid, key);
+		}
+		catch (err) {
+			console.error('记录节点 ' + cid + ' 的公钥失败：' + err.message);
+		}
 	}
 };

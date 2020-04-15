@@ -37,6 +37,13 @@ class Message {
 		}
 		return ok;
 	}
+	copy () {
+		var m = new Message();
+		m.sender = this.sender;
+		m.stamp = this.stamp;
+		m.event = this.event;
+		m.message = this.message;
+	}
 }
 
 module.exports = Message;

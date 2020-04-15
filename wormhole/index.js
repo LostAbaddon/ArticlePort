@@ -4,10 +4,13 @@ const {UserTraffic, ConnManager} = require('./traffic');
 const keyUtil = require('./keyUtils');
 const Responsor = require('./responsor');
 const Message = require('./message');
+require('../core/datastore/lrucache');
+const LRUCache = _('DataStore.LRUCache');
 
 const Wormhole = {};
 const NodeMap = {};
 const ReAlohaDelay = 1000 * 60 * 3;
+const MessageHistory = new LRUCache(1000);
 
 var timerAloha = null;
 var started = false;
@@ -38,6 +41,9 @@ const parseMessage = msg => {
 	catch {
 		return null;
 	}
+	if (MessageHistory.has(msg.mid)) return null;
+	MessageHistory.set(msg.mid, msg.stamp);
+
 	var m = new Message();
 	m.mid = msg.mid;
 	m.sign = msg.sign;
@@ -45,7 +51,7 @@ const parseMessage = msg => {
 	m.stamp = msg.stamp;
 	m.event = msg.event;
 	m.message = msg.message;
-	console.log(m);
+	if (!msg.verify(keyUtil.getPubKey(m.sender))) return null;
 	return m;
 };
 
@@ -61,7 +67,7 @@ Wormhole.init = (port, bootstraps) => new Promise(async res => {
 		console.error('获取本地公钥失败！');
 		return res(0);
 	}
-	global.Keys.card = pubkey;
+	global.Keys.card = pubkey.PublicKey;
 	global.Keys.pub = crypto.createPublicKey({
 		key: keyUtil.unmarshal(pubkey.PublicKey),
 		format: 'der',
@@ -83,6 +89,19 @@ Wormhole.init = (port, bootstraps) => new Promise(async res => {
 	started = true;
 	res(port);
 });
+Wormhole.getIDCard = () => {
+	var msg = new Message();
+	var self = global.NodeManager.getSelfInfo();
+	msg.stamp = self.signin;
+	msg.sender = global.NodeConfig.node.id;
+	msg.event = 'shakehand';
+	msg.message = {
+		key: global.Keys.card,
+		port: global.NodeConfig.node.publicPort
+	};
+	msg.generate();
+	return msg;
+};
 Wormhole.createServer = port => new Promise(res => {
 	Wormhole.server = Net.createServer(remote => {
 		var address = remote.remoteAddress;
@@ -93,22 +112,17 @@ Wormhole.createServer = port => new Promise(res => {
 		console.log('与远端建立连接:' + address + ':' + port);
 
 		remote.on('data', msg => {
+			var len = msg.length;
 			msg = parseMessage(msg);
-			console.log(msg.verify());
-			return;
+			if (!msg) return;
 
+			if (msg.event === 'shakehand') {
+				keyUtil.setPubKey(msg.sender, msg.key);
+			}
 
-
-			msg = msg.toString();
-			msg = msg.split(':');
-			var len = msg.splice(0, 1) * 1;
-			if (isNaN(len)) return;
-			msg = msg.join(':');
-			msg = msg.substring(0, len);
-			msg = msg.split(':');
-			var node = msg[0];
-			var action = msg[1];
-			msg = msg[2];
+			var node = msg.sender;
+			var action = msg.event;
+			var message = msg.message;
 			if (!node || !action) return;
 			user = NodeMap[node];
 			if (!user) {
@@ -124,7 +138,7 @@ Wormhole.createServer = port => new Promise(res => {
 
 			action = Responsor[action];
 			if (!action) return;
-			action(node, msg);
+			action(node, message, msg);
 		});
 		remote.on('error', err => {
 			console.error('远端通道关闭 (' + address + ':' + port + '): ' + err.message);
@@ -133,6 +147,7 @@ Wormhole.createServer = port => new Promise(res => {
 		remote.on('close', () => {
 			if (!!remote.resList) remote.resList.forEach(res => res(false));
 			delete remote.resList;
+			if (!conn) return;
 
 			conn.socket = undefined;
 			user.sockets.remove(conn);
@@ -236,27 +251,16 @@ Wormhole.sendToAddr = (info, conn, msg) => new Promise(res => {
 	socket.resList = [res];
 	socket.on('data', msg => {
 		msg = parseMessage(msg);
-		return;
+		if (!msg) return;
 
-
-
-
-
-		msg = msg.toString();
-		msg = msg.split(':');
-		var len = msg.splice(0, 1) * 1;
-		if (isNaN(len)) return;
-		msg = msg.join(':');
-		msg = msg.substring(0, len);
-		msg = msg.split(':');
-		var node = msg[0];
-		var action = msg[1];
-		msg = msg[2];
+		var node = msg.sender;
+		var action = msg.event;
+		var message = msg.message;
 		if (!node || !action) return;
 		info.record(conn.host, conn.port, true, len, true);
 		action = Responsor[action];
 		if (!action) return;
-		action(node, msg);
+		action(node, message, msg);
 	});
 	socket.on('error', err => {
 		console.error('通讯连接出错：' + err.message);
@@ -265,6 +269,7 @@ Wormhole.sendToAddr = (info, conn, msg) => new Promise(res => {
 	socket.on('close', () => {
 		if (!!socket.resList) socket.resList.forEach(res => res(false));
 		delete socket.resList;
+		if (!item) return;
 
 		item.socket = undefined;
 		info.sockets.remove(item);
@@ -279,13 +284,7 @@ Wormhole.alohaKosmos = () => new Promise(async res => {
 	var nodes = global.NodeManager.getNodeList();
 	if (nodes.length === 0) return res();
 
-	var msg = new Message();
-	msg.event = 'shakehand';
-	msg.message = {
-		key: global.Keys.card,
-		port: global.NodeConfig.node.publicPort
-	};
-	msg.generate();
+	var msg = Wormhole.getIDCard().copy();
 	msg = JSON.stringify(msg);
 
 	var actions = nodes.map(node => Wormhole.shakeHand(node.id, node.port, msg));
