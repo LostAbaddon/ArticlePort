@@ -73,7 +73,7 @@ Responsor.StarPortUpdated = async (sender, msg) => {
 	if (global.NodeManager.didSubscribed(sender)) getUserContent(sender, hash);
 };
 Responsor.NewContent = async (sender, hash, msg) => {
-	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 节点 (' + sender + ') 发布新内容: ' + hash);
+	console.log('节点 (' + sender + ') 发布新内容: ' + hash);
 	if (global.NodeManager.didSubscribed(sender)) {
 		await global.IPFS.downloadFile(hash);
 		console.log('已预取内容 ' + hash);
@@ -87,7 +87,6 @@ Responsor.NewContent = async (sender, hash, msg) => {
 			console.log('已预取内容 ' + hash);
 		}
 	}
-	console.log('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv', msg);
 	global.Wormhole.broadcast(msg);
 };
 

@@ -32,7 +32,7 @@ class Message {
 			ok = crypto.verify('RSA-SHA256', Buffer.from(data, 'utf8'), pubkey, Buffer.from(this.sign, 'base64'));
 		}
 		catch (err) {
-			console.error(err.message);
+			console.error('验证失败：' + err.message);
 			ok = false;
 		}
 		return ok;
