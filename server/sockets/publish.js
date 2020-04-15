@@ -54,7 +54,7 @@ const callback = async (data, socket, event) => {
 	}
 	console.log('新文件上传到星网成功：' + result);
 	info.hash = result;
-	global.Wormhole.broadcast('NewContent', result);
+	global.Wormhole.broadcast('NewContent', result, true);
 
 	// 更新本地记录，同时广播到前端
 	await ContentManager.set(channel, info.id, info);

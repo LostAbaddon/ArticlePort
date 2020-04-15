@@ -106,6 +106,7 @@ Wormhole.getIDCard = () => {
 	msg.sender = global.NodeConfig.node.id;
 	msg.event = 'shakehand';
 	msg.message = {
+		hash: global.NodeConfig.hash,
 		key: global.Keys.card,
 		port: global.NodeConfig.node.publicPort
 	};
