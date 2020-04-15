@@ -35,7 +35,7 @@ const parseMessage = msg => {
 	try {
 		msg = JSON.parse(msg);
 	}
-	catch () {
+	catch {
 		return null;
 	}
 	var m = new Message();
@@ -94,6 +94,7 @@ Wormhole.createServer = port => new Promise(res => {
 
 		remote.on('data', msg => {
 			msg = parseMessage(msg);
+			console.log(msg.verify());
 			return;
 
 
