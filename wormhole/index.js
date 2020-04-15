@@ -288,7 +288,7 @@ Wormhole.alohaKosmos = () => new Promise(async res => {
 	msg.generate();
 	msg = JSON.stringify(msg);
 
-	var actions = nodes.map(node => Wormhole.shakeHand(node.id, node.port));
+	var actions = nodes.map(node => Wormhole.shakeHand(node.id, node.port, msg));
 	actions.push(Wormhole.shakeHand2Bootstraps());
 	await Promise.all(actions);
 	res();
