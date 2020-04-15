@@ -20,6 +20,7 @@ class Message {
 		this.sign = crypto.sign('RSA-SHA256', Buffer.from(data, 'utf8'), privKey).toString('base64');
 	}
 	verify (pubkey) {
+		console.log('::::    ::::    ' + this.sender + ' | ' + this.event + ' | ' + pubkey);
 		var data = this.sender + '|' + this.stamp + '|' + this.event + '|' + JSON.stringify(this.message);
 		const hash = crypto.createHash('sha256');
 		hash.update(data);
