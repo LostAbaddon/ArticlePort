@@ -56,10 +56,10 @@ const parseMessage = msg => {
 	return m;
 };
 const dealMessage = msg => {
+	console.log('...........................', msg);
 	var node = msg.sender;
 	var action = msg.event;
 	var message = msg.message;
-	console.log('...........................', msg);
 	if (!node || !action) return;
 	action = Responsor[action];
 	console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!', action);
@@ -143,7 +143,7 @@ Wormhole.createServer = port => new Promise(res => {
 			if (!user.sockets.includes(conn)) user.sockets.push(conn);
 			ConnManager.add(conn);
 
-			dealMessage();
+			dealMessage(msg);
 		});
 		remote.on('error', err => {
 			console.error('远端通道关闭 (' + address + ':' + port + '): ' + err.message);
@@ -259,7 +259,7 @@ Wormhole.sendToAddr = (info, conn, msg) => new Promise(res => {
 		if (!msg) return;
 
 		if (!!msg.sender && !!msg.event) info.record(conn.host, conn.port, true, len, true);
-		dealMessage();
+		dealMessage(msg);
 	});
 	socket.on('error', err => {
 		console.error('通讯连接出错：' + err.message);
