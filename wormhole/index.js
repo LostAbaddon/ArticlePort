@@ -52,7 +52,14 @@ const parseMessage = msg => {
 	m.stamp = msg.stamp;
 	m.event = msg.event;
 	m.message = msg.message;
-	if (!m.verify(keyUtil.getPubKey(m.sender))) return null;
+	var pubkey = keyUtil.getPubKey(m.sender);
+	if (!pubkey) {
+		let card = Wormhole.getIDCard().copy();
+		card.generate();
+		card = JSON.stringify(card);
+		Wormhole.shakeHand(msg.sender, undefined, card);
+	}
+	if (!m.verify(pubkey)) return null;
 	return m;
 };
 const dealMessage = msg => {
