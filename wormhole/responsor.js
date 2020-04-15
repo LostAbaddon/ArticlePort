@@ -1,3 +1,5 @@
+const keyUtil = require('./keyUtils');
+
 const getUserContent = (node, hash) => new Promise(async res => {
 	var path;
 	try {
@@ -55,6 +57,7 @@ const Responsor = {};
 Responsor.shakehand = async (sender, msg) => {
 	var hash = msg.hash;
 	console.log('++++    ++++    获得节点 (' + sender + ') 新内容哈希 :::: ' + hash);
+	keyUtil.setPubKey(sender, msg.key);
 
 	var card = global.Wormhole.getIDCard();
 	if (!!card) {
@@ -70,6 +73,7 @@ Responsor.shakehand = async (sender, msg) => {
 Responsor.StarPortUpdated = async (sender, msg) => {
 	var hash = msg.hash;
 	console.log('----    ----    节点 (' + sender + ') 更新内容哈希 :::: ' + hash);
+	keyUtil.setPubKey(sender, msg.key);
 	if (global.NodeManager.didSubscribed(sender)) getUserContent(sender, hash);
 };
 Responsor.NewContent = async (sender, hash, msg) => {

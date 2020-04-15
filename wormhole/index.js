@@ -134,10 +134,6 @@ Wormhole.createServer = port => new Promise(res => {
 			msg = parseMessage(msg);
 			if (!msg) return;
 
-			if (msg.event === 'shakehand') {
-				keyUtil.setPubKey(msg.sender, msg.message.key);
-			}
-
 			user = NodeMap[msg.sender];
 			if (!user) {
 				user = new UserTraffic(msg.sender);
