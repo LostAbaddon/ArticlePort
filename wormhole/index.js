@@ -1,6 +1,9 @@
 const Net = require('net');
+const crypto = require("crypto");
 const {UserTraffic, ConnManager} = require('./traffic');
+const keyUtil = require('./keyUtils');
 const Responsor = require('./responsor');
+const Message = require('./message');
 
 const Wormhole = {};
 const NodeMap = {};
@@ -28,7 +31,43 @@ const delayHandler = () => {
 	});
 };
 
+const parseMessage = msg => {
+	try {
+		msg = JSON.parse(msg);
+	}
+	catch () {
+		return null;
+	}
+	var m = new Message();
+	m.mid = msg.mid;
+	m.sign = msg.sign;
+	m.sender = msg.sender;
+	m.stamp = msg.stamp;
+	m.event = msg.event;
+	m.message = msg.message;
+	console.log(m);
+	return m;
+};
+
 Wormhole.init = (port, bootstraps) => new Promise(async res => {
+	global.Keys = {};
+	global.Keys.priv = crypto.createPrivateKey({
+		key: keyUtil.unmarshal(global.NodeConfig.node.key),
+		format: 'der',
+		type: 'pkcs1'
+	});
+	var pubkey = await IPFS.getNodeInfo();
+	if (!pubkey || !pubkey.PublicKey) {
+		console.error('获取本地公钥失败！');
+		return res(0);
+	}
+	global.Keys.card = pubkey;
+	global.Keys.pub = crypto.createPublicKey({
+		key: keyUtil.unmarshal(pubkey.PublicKey),
+		format: 'der',
+		type: 'spki'
+	});
+
 	(bootstraps || []).forEach(item => {
 		item = item.split('/');
 		if (item.length !== 2) return;
@@ -54,6 +93,11 @@ Wormhole.createServer = port => new Promise(res => {
 		console.log('与远端建立连接:' + address + ':' + port);
 
 		remote.on('data', msg => {
+			msg = parseMessage(msg);
+			return;
+
+
+
 			msg = msg.toString();
 			msg = msg.split(':');
 			var len = msg.splice(0, 1) * 1;
@@ -109,10 +153,19 @@ Wormhole.createServer = port => new Promise(res => {
 });
 Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
 	if (!started) return res();
+
+	var m = new Message();
+	m.event = event;
+	m.message = msg;
+	if (encrypt) m.generate(global.Keys.priv);
+	else m.generate();
+	msg = JSON.stringify(m);
+	m = null;
+
 	await Promise.all(Object.keys(NodeMap).map(node => Wormhole.sendToNode(node, event, msg)));
 	res();
 });
-Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res => {
+Wormhole.sendToNode = (node, msg) => new Promise(async res => {
 	if (!started) return res(false);
 
 	var conns = NodeMap[node];
@@ -121,23 +174,19 @@ Wormhole.sendToNode = (node, event, msg, encrypt=false) => new Promise(async res
 	if (count === 0) return res();
 	var notOK = true, done;
 
-	msg = global.NodeConfig.node.id + ':' + (event || 'message') + ':' + msg;
 	var msgLen = msg.length;
-	msg = msgLen + ':' + msg;
-
 	while (notOK && count > 0) {
 		let conn = conns.choose(true);
 		if (!conn) conn = conns.choose(false);
-		console.log('>>>>>>>>>>>>>>>>>', conns.getAll().length, conns.sockets.length, conn.weight);
 		console.log('发送数据至 ' + conn.host + ':' + conn.port + ' (' + node + ')');
-		done = await Wormhole.sendToAddr(conns, conn, msg, encrypt);
+		done = await Wormhole.sendToAddr(conns, conn, msg);
 		conns.record(conn.host, conn.port, done, done ? msgLen : 0, false);
 		notOK = !done;
 		count --;
 	}
 	res(done);
 });
-Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
+Wormhole.sendToAddr = (info, conn, msg) => new Promise(res => {
 	if (!started) return res(false);
 
 	ConnManager.closeOverCount(global.NodeConfig.connectionLimit);
@@ -185,6 +234,13 @@ Wormhole.sendToAddr = (info, conn, msg, encrypt=false) => new Promise(res => {
 	});
 	socket.resList = [res];
 	socket.on('data', msg => {
+		msg = parseMessage(msg);
+		return;
+
+
+
+
+
 		msg = msg.toString();
 		msg = msg.split(':');
 		var len = msg.splice(0, 1) * 1;
@@ -222,6 +278,15 @@ Wormhole.alohaKosmos = () => new Promise(async res => {
 	var nodes = global.NodeManager.getNodeList();
 	if (nodes.length === 0) return res();
 
+	var msg = new Message();
+	msg.event = 'shakehand';
+	msg.message = {
+		key: global.Keys.card,
+		port: global.NodeConfig.node.publicPort
+	};
+	msg.generate();
+	msg = JSON.stringify(msg);
+
 	var actions = nodes.map(node => Wormhole.shakeHand(node.id, node.port));
 	actions.push(Wormhole.shakeHand2Bootstraps());
 	await Promise.all(actions);
@@ -230,7 +295,7 @@ Wormhole.alohaKosmos = () => new Promise(async res => {
 	if (!!timerAloha) clearTimeout(timerAloha);
 	timerAloha = setTimeout(Wormhole.alohaKosmos, ReAlohaDelay);
 });
-Wormhole.shakeHand = (node, port) => new Promise(async res => {
+Wormhole.shakeHand = (node, port, msg) => new Promise(async res => {
 	var conns;
 	try {
 		conns = await IPFS.getConnections(node);
@@ -267,16 +332,12 @@ Wormhole.shakeHand = (node, port) => new Promise(async res => {
 		});
 	}
 
-	await Wormhole.sendToNode(node, 'shakehand', global.NodeConfig.hash);
+	await Wormhole.sendToNode(node, msg);
 	res();
 });
-Wormhole.shakeHand2Bootstraps = () => new Promise(async res => {
-	var msg = global.NodeConfig.node.id + ':shakehand:' + global.NodeConfig.hash;
-	var msgLen = msg.length;
-	msg = msgLen + ':' + msg;
-
+Wormhole.shakeHand2Bootstraps = msg => new Promise(async res => {
 	var actions = bootstrapList.map(conn => {
-		console.log('xxxxxxxxxxxxxxxxxxxxxxxx 连接到入口节点 (' + conn.host + ':' + conn.port + ')');
+		console.log('连接到入口节点 (' + conn.host + ':' + conn.port + ')');
 		return Wormhole.sendToAddr(conn, conn, msg);
 	});
 	await Promise.all(actions);

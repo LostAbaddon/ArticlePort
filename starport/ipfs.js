@@ -480,6 +480,35 @@ IPFS.getConnections = hash => new Promise(async (res, rej) => {
 	}).filter(c => !!c);
 	res(logs);
 });
+IPFS.getNodeInfo = () => new Promise(async (res, rej) => {
+	var logs = '', finished = false;
+	try {
+		await runCMD(
+			['id'],
+			data => {
+				logs += data + '\n';
+			},
+			err => {
+				finished = true;
+				rej(err);
+			}
+		);
+	}
+	catch (err) {
+		rej(err);
+		return;
+	}
+	if (finished) return;
+
+	try {
+		logs = JSON.parse(logs);
+	}
+	catch (err) {
+		console.error(err.message);
+		return res(null);
+	}
+	res(logs);
+});
 
 ResourceManager.init();
 
