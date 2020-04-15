@@ -35,12 +35,9 @@ const delayHandler = () => {
 };
 
 const parseMessage = msg => {
-	console.log('!!!!    !!!!    1');
 	try {
 		msg = msg.toString();
-		console.log('!!!!    !!!!    2', msg);
 		msg = JSON.parse(msg);
-		console.log('!!!!    !!!!    3', msg);
 	}
 	catch {
 		return null;
@@ -55,21 +52,16 @@ const parseMessage = msg => {
 	m.stamp = msg.stamp;
 	m.event = msg.event;
 	m.message = msg.message;
-	console.log('!!!!    !!!!    4', m);
 	if (!m.verify(keyUtil.getPubKey(m.sender))) return null;
-	console.log('!!!!    !!!!    5');
 	return m;
 };
 const dealMessage = msg => {
-	console.log('>>>>    >>>>    1', msg);
 	var node = msg.sender;
 	var action = msg.event;
 	var message = msg.message;
 	if (!node || !action) return;
-	console.log('>>>>    >>>>    2', msg);
 	action = Responsor[action];
 	if (!action) return;
-	console.log('>>>>    >>>>    3', msg);
 	action(node, message, msg);
 };
 
@@ -185,6 +177,7 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
 	if (event instanceof Message) {
 		if (msg) event.generate(global.Keys.priv);
 		else event.generate();
+		MessageHistory.set(event.mid, event.stamp);
 		msg = JSON.stringify(event);
 	}
 	else {
@@ -193,6 +186,7 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
 		m.message = msg;
 		if (encrypt) m.generate(global.Keys.priv);
 		else m.generate();
+		MessageHistory.set(m.mid, m.stamp);
 		msg = JSON.stringify(m);
 		m = null;
 	}

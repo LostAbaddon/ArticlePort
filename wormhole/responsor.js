@@ -52,7 +52,7 @@ const simiDist = (numa, numb) => {
 var myCID;
 
 const Responsor = {};
-Responsor.shakehand = async (sender, msg, event) => {
+Responsor.shakehand = async (sender, msg) => {
 	var hash = msg.hash;
 	console.log('获得节点 (' + sender + ') 新内容哈希 :::: ' + hash);
 	var card = global.Wormhole.getIDCard().copy();
@@ -67,21 +67,23 @@ Responsor.StarPortUpdated = async (sender, msg) => {
 	console.log('节点 (' + sender + ') 更新内容哈希 :::: ' + hash);
 	if (global.NodeManager.didSubscribed(sender)) getUserContent(sender, hash);
 };
-Responsor.NewContent = async (sender, msg) => {
-	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 节点 (' + sender + ') 发布新内容: ' + msg);
+Responsor.NewContent = async (sender, hash, msg) => {
+	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 节点 (' + sender + ') 发布新内容: ' + hash);
 	if (global.NodeManager.didSubscribed(sender)) {
-		await global.IPFS.downloadFile(msg);
-		console.log('已预取内容 ' + msg);
+		await global.IPFS.downloadFile(hash);
+		console.log('已预取内容 ' + hash);
 	}
 	else {
 		myCID = myCID || cid2nums(global.NodeConfig.node.id);
-		let cid = cid2nums(msg);
+		let cid = cid2nums(hash);
 		let dist = simiDist(myCID, cid);
 		if (dist < CIDBYTES / 4 * CIDLENGTH / 2) {
-			await global.IPFS.downloadFile(msg);
-			console.log('已预取内容 ' + msg);
+			await global.IPFS.downloadFile(hash);
+			console.log('已预取内容 ' + hash);
 		}
 	}
+	console.log('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv', msg);
+	global.Wormhole.broadcast(msg);
 };
 
 module.exports = Responsor;
