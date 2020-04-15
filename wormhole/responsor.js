@@ -53,7 +53,7 @@ var myCID;
 
 const Responsor = {};
 Responsor.shakehand = async (sender, msg, event) => {
-	var hash = msg.message.hash;
+	var hash = msg.hash;
 	console.log('获得节点 (' + sender + ') 新内容哈希 :::: ' + hash);
 	var card = global.Wormhole.getIDCard().copy();
 	card.event = 'StarPortUpdated';
@@ -63,7 +63,7 @@ Responsor.shakehand = async (sender, msg, event) => {
 	if (global.NodeManager.didSubscribed(sender)) getUserContent(sender, hash);
 };
 Responsor.StarPortUpdated = async (sender, msg) => {
-	var hash = msg.message.hash;
+	var hash = msg.hash;
 	console.log('节点 (' + sender + ') 更新内容哈希 :::: ' + hash);
 	if (global.NodeManager.didSubscribed(sender)) getUserContent(sender, hash);
 };
