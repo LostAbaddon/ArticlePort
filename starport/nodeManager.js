@@ -29,6 +29,10 @@ const saveAndPublish = (needSave=true, broadcast=true) => new Promise(async res 
 		console.error('更新目录失败：' + err.message);
 		return res(null);
 	}
+	if (!hash) {
+		console.error('更新目录失败，可能是 IPFS 后台启动失败。');
+		return res(null);
+	}
 	console.log('更新内容星站：' + hash);
 	global.NodeConfig.hash = hash;
 	res(hash);

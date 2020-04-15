@@ -24,7 +24,9 @@ class Message {
 		const hash = crypto.createHash('sha256');
 		hash.update(data);
 		var mid = hash.digest('base64');
+		console.log('XXXXXXXXXXXXXXXXX    1', mid, this.mid);
 		if (mid !== this.mid) return false;
+		console.log('XXXXXXXXXXXXXXXXX    2');
 		if (!this.sign) return true;
 		data = mid + '|' + data;
 		var ok = false;

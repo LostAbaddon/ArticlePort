@@ -35,12 +35,16 @@ const delayHandler = () => {
 };
 
 const parseMessage = msg => {
+	console.log('????????????????', msg)
 	try {
+		msg = msg.toString();
 		msg = JSON.parse(msg);
 	}
 	catch {
+		console.log('============================================   1')
 		return null;
 	}
+	console.log('============================================   2', msg)
 	if (MessageHistory.has(msg.mid)) return null;
 	MessageHistory.set(msg.mid, msg.stamp);
 
@@ -51,8 +55,21 @@ const parseMessage = msg => {
 	m.stamp = msg.stamp;
 	m.event = msg.event;
 	m.message = msg.message;
+	console.log('============================================   3')
 	if (!m.verify(keyUtil.getPubKey(m.sender))) return null;
+	console.log('============================================   4')
 	return m;
+};
+const dealMessage = msg => {
+	var node = msg.sender;
+	var action = msg.event;
+	var message = msg.message;
+	console.log('...........................', msg);
+	if (!node || !action) return;
+	action = Responsor[action];
+	console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!', action);
+	if (!action) return;
+	action(node, message, msg);
 };
 
 Wormhole.init = (port, bootstraps) => new Promise(async res => {
@@ -99,7 +116,6 @@ Wormhole.getIDCard = () => {
 		key: global.Keys.card,
 		port: global.NodeConfig.node.publicPort
 	};
-	msg.generate();
 	return msg;
 };
 Wormhole.createServer = port => new Promise(res => {
@@ -112,22 +128,22 @@ Wormhole.createServer = port => new Promise(res => {
 		console.log('与远端建立连接:' + address + ':' + port);
 
 		remote.on('data', msg => {
+			console.log('>>>>>>>>>>>>>>>>>>> step 1');
 			var len = msg.length;
 			msg = parseMessage(msg);
+			console.log('>>>>>>>>>>>>>>>>>>> step 2', msg);
 			if (!msg) return;
+			console.log('>>>>>>>>>>>>>>>>>>> step 3');
 
 			if (msg.event === 'shakehand') {
+				console.log('>>>>>>>>>>>>>>>>>>> step 4');
 				keyUtil.setPubKey(msg.sender, msg.key);
 			}
 
-			var node = msg.sender;
-			var action = msg.event;
-			var message = msg.message;
-			if (!node || !action) return;
-			user = NodeMap[node];
+			user = NodeMap[msg.sender];
 			if (!user) {
-				user = new UserTraffic(node);
-				NodeMap[node] = user;
+				user = new UserTraffic(msg.sender);
+				NodeMap[msg.sender] = user;
 			}
 			user.record(address, port, true, len, true);
 			conn = user.getConn(address).getConn(port);
@@ -135,10 +151,9 @@ Wormhole.createServer = port => new Promise(res => {
 			remote.resList = remote.resList || [];
 			if (!user.sockets.includes(conn)) user.sockets.push(conn);
 			ConnManager.add(conn);
+			console.log('>>>>>>>>>>>>>>>>>>> step 5');
 
-			action = Responsor[action];
-			if (!action) return;
-			action(node, message, msg);
+			dealMessage();
 		});
 		remote.on('error', err => {
 			console.error('远端通道关闭 (' + address + ':' + port + '): ' + err.message);
@@ -253,14 +268,8 @@ Wormhole.sendToAddr = (info, conn, msg) => new Promise(res => {
 		msg = parseMessage(msg);
 		if (!msg) return;
 
-		var node = msg.sender;
-		var action = msg.event;
-		var message = msg.message;
-		if (!node || !action) return;
-		info.record(conn.host, conn.port, true, len, true);
-		action = Responsor[action];
-		if (!action) return;
-		action(node, message, msg);
+		if (!!msg.sender && !!msg.event) info.record(conn.host, conn.port, true, len, true);
+		dealMessage();
 	});
 	socket.on('error', err => {
 		console.error('通讯连接出错：' + err.message);
@@ -285,6 +294,7 @@ Wormhole.alohaKosmos = () => new Promise(async res => {
 	if (nodes.length === 0) return res();
 
 	var msg = Wormhole.getIDCard().copy();
+	msg.generate();
 	msg = JSON.stringify(msg);
 
 	var actions = nodes.map(node => Wormhole.shakeHand(node.id, node.port, msg));
