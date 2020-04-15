@@ -56,13 +56,11 @@ const parseMessage = msg => {
 	return m;
 };
 const dealMessage = msg => {
-	console.log('...........................', msg);
 	var node = msg.sender;
 	var action = msg.event;
 	var message = msg.message;
 	if (!node || !action) return;
 	action = Responsor[action];
-	console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!', action);
 	if (!action) return;
 	action(node, message, msg);
 };
@@ -255,6 +253,7 @@ Wormhole.sendToAddr = (info, conn, msg) => new Promise(res => {
 	});
 	socket.resList = [res];
 	socket.on('data', msg => {
+		var len = msg.length;
 		msg = parseMessage(msg);
 		if (!msg) return;
 
