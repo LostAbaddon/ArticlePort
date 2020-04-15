@@ -302,7 +302,7 @@ Wormhole.shakeHand = (node, port, msg) => new Promise(async res => {
 	}
 	catch (err) {
 		console.error('查询节点(' + node + ')可用连接失败：' + err.message);
-		delayAction.push(['shakeHand', node]);
+		delayAction.push(['shakeHand', node, port, msg]);
 		setTimeout(delayHandler, 1000 * 30);
 		res();
 		return;
@@ -332,6 +332,7 @@ Wormhole.shakeHand = (node, port, msg) => new Promise(async res => {
 		});
 	}
 
+	console.log(msg);
 	await Wormhole.sendToNode(node, msg);
 	res();
 });
