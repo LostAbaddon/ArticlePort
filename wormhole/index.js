@@ -100,6 +100,7 @@ Wormhole.init = (port, bootstraps) => new Promise(async res => {
 	res(port);
 });
 Wormhole.getIDCard = () => {
+	if (!global.Keys.card) return null;
 	var msg = new Message();
 	var self = global.NodeManager.getSelfInfo();
 	msg.stamp = self.signin;

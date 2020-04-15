@@ -55,11 +55,16 @@ const Responsor = {};
 Responsor.shakehand = async (sender, msg) => {
 	var hash = msg.hash;
 	console.log('获得节点 (' + sender + ') 新内容哈希 :::: ' + hash);
-	var card = global.Wormhole.getIDCard().copy();
-	card.event = 'StarPortUpdated';
-	card.generate();
-	card = JSON.stringify(card);
-	global.Wormhole.sendToNode(sender, card);
+
+	var card = global.Wormhole.getIDCard();
+	if (!!card) {
+		card = card.copy();
+		card.event = 'StarPortUpdated';
+		card.generate();
+		card = JSON.stringify(card);
+		global.Wormhole.sendToNode(sender, card);
+	}
+
 	if (global.NodeManager.didSubscribed(sender)) getUserContent(sender, hash);
 };
 Responsor.StarPortUpdated = async (sender, msg) => {

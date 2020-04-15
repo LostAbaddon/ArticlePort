@@ -39,9 +39,12 @@ const saveAndPublish = (needSave=true, broadcast=true) => new Promise(async res 
 
 	if (!broadcast) return;
 
-	var card = global.Wormhole.getIDCard().copy();
-	card.event = 'StarPortUpdated';
-	global.Wormhole.broadcast(card);
+	var card = global.Wormhole.getIDCard();
+	if (!!card) {
+		card = card.copy();
+		card.event = 'StarPortUpdated';
+		global.Wormhole.broadcast(card);
+	}
 	try {
 		await IPFS.publish(hash);
 	}
