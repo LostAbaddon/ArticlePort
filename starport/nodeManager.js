@@ -24,7 +24,6 @@ const saveAndPublish = (needSave=true, broadcast=true) => new Promise(async res 
 	var hash;
 	try {
 		hash = await IPFS.uploadFolder(storagePath);
-		console.log(':::::::::::::::::::::::', hash);
 	}
 	catch (err) {
 		console.error('更新目录失败：' + err.message);

@@ -73,6 +73,8 @@ const dealMessage = msg => {
 };
 
 Wormhole.init = (port, bootstraps) => new Promise(async res => {
+	await keyUtil.init();
+
 	var pubkey = await IPFS.getNodeInfo();
 	if (!pubkey || !pubkey.PublicKey) {
 		console.error('获取本地公钥失败！');
