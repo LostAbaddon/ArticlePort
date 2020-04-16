@@ -32,14 +32,15 @@ const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => n
 	var timeouter;
 	if (timeout > 0) timeouter = setTimeout(closer, timeout);
 	var worker = spawn(IPFS.cmd, [...cmd, '--config=' + IPFS.path]);
+	var result = '';
 	worker.stdout.on('data', data => {
 		if (timeout > 0) {
 			clearTimeout(timeouter);
 			timeouter = setTimeout(closer, timeout);
 		}
-		data = data.toString()
+		data = data.toString();
 		if (ShowLog) console.log(logcmd + ' :', data);
-		if (!!onData) onData(data);
+		result = result + data;
 	});
 	worker.stdout.on('error', err => {
 		if (timeout > 0) {
@@ -62,10 +63,10 @@ const runCMD = (cmd, onData, onError, onWarning, timeout=ResponsingTimeout) => n
 	worker.on('close', data => {
 		if (timeout > 0) clearTimeout(timeouter);
 		timeouter = null;
-		closer = null
-		res(data);
+		closer = null;
+		if (!!onData) onData(result);
+		res(result);
 	});
-	return worker;
 });
 const changeMultiAddressPort = (addr, port) => {
 	addr = addr.split('/');
@@ -236,102 +237,66 @@ IPFS.start = port => new Promise(res => {
 	);
 });
 IPFS.initUser = () => new Promise(async (res, rej) => {
-	var finished = false;
 	try {
-		await runCMD(
-			['init'], null,
-			err => {
-				finished = true;
-				rej(err);
-			}
-		);
+		await runCMD(['init'], res, rej);
 	}
 	catch (err) {
 		rej(err);
-		return;
 	}
-	if (finished) return;
-	res();
 });
 IPFS.uploadFolder = path => new Promise(async (res, rej) => {
-	var logs = '', finished = false;
 	try {
 		await runCMD(
 			['add', '-r', path],
 			data => {
-				logs += data + '\n';
-			},
-			err => {
-				finished = true;
-				rej(err);
-			}
+				var hashes = {};
+				data.split(/\n+/)
+					.filter(l => l.indexOf('added') >= 0)
+					.map(l => l.replace(/^added */i, '').trim())
+					.forEach(l => {
+						l = l.split(/ +/);
+						hashes[l[1]] = l[0];
+					})
+				;
+				path = path.split(/[\\\/]/);
+				path = path.last;
+				res(hashes[path]);
+			}, rej
 		);
 	}
 	catch (err) {
 		rej(err);
-		return;
 	}
-	if (finished) return;
-
-	var hashes = {}
-	logs.split('added')
-		.filter(l => l.length > 0)
-		.map(l => l.trim().replace(/\n+/g, ''))
-		.forEach(l => {
-			l = l.split(/ +/);
-			hashes[l[1]] = l[0];
-		})
-	;
-	path = path.split(/[\\\/]/);
-	path = path.last;
-	res(hashes[path]);
 });
 IPFS.uploadFile = file => new Promise(async (res, rej) => {
-	var logs = '', finished = false;
 	try {
 		await runCMD(
 			['add', file],
 			data => {
-				logs += data + '\n';
-			},
-			err => {
-				finished = true;
-				rej(err);
-			}
+				var hash = data.split('added').filter(l => l.length > 0).map(l => l.trim().replace(/\n+/g, '').split(/ +/))[0];
+				if (!hash) return res(null);
+				res(hash[0]);
+			}, rej
 		);
 	}
 	catch (err) {
 		rej(err);
-		return;
 	}
-	if (finished) return;
-
-	var hash = logs.split('added').filter(l => l.length > 0).map(l => l.trim().replace(/\n+/g, '').split(/ +/))[0];
-	if (!hash) return res(null);
-	res(hash[0]);
 });
 IPFS.downloadFolder = (cid, hash) => new Promise(async (res, rej) => {
-	var logs = '', finished = false;
 	var path = Path.join(FolderPath, cid);
 	try {
 		await runCMD(
 			['get', hash, '--output=' + path],
 			data => {
-				logs += data + '\n';
-			},
-			err => {
-				finished = true;
-				rej(err);
-			}
+				ResourceManager.set(hash, true);
+				res(path);
+			}, rej
 		);
 	}
 	catch (err) {
 		rej(err);
-		return;
 	}
-	if (finished) return;
-	ResourceManager.set(hash, true);
-	res(path);
 });
 IPFS.downloadFile = hash => new Promise(async (res, rej) => {
 	var filepath = Path.join(FolderPath, hash);
@@ -347,67 +312,51 @@ IPFS.downloadFile = hash => new Promise(async (res, rej) => {
 		return res(file);
 	}
 
-	var logs = '', finished = false;
 	try {
 		await runCMD(
 			['get', hash, '--output=' + filepath],
-			data => {
-				logs += data + '\n';
-			},
-			err => {
-				finished = true;
-				rej(err);
-			}
+			async data => {
+				try {
+					file = await getLocalFile(filepath);
+					ResourceManager.set(hash, false);
+				}
+				catch {
+					file = null;
+				}
+				return res(file);
+			}, rej
 		);
 	}
 	catch (err) {
 		rej(err);
-		return;
 	}
-	if (finished) return;
-	try {
-		file = await getLocalFile(filepath);
-	}
-	catch {
-		file = null;
-	}
-	ResourceManager.set(hash, false);
-	return res(file);
 });
 IPFS.publish = hash => new Promise(async (res, rej) => {
-	var logs = '', finished = false;
 	if (publishPending.length === 0) {
 		try {
 			await runCMD(
 				['name', 'publish', hash, '--allow-offline'],
-				data => {
-					logs += data + '\n';
-				},
-				err => {
-					finished = true;
-					rej(err);
-				}, null, PublishTimeout
+				async data => {
+					data = data.split(':')[0].replace('Published to ', '');
+					res(data);
+					var loops = currentPending.splice(0, currentPending.length);
+					loops.forEach(r => r(data));
+
+					if (publishPending.length > 0) {
+						publishPending.forEach(r => currentPending.push(r));
+						publishPending.splice(0, publishPending.length);
+						try {
+							await IPFS.publish(lastHash);
+						}
+						catch (err) {
+							console.error('发布更新失败：' + err.message);
+						}
+					}
+				}, rej, null, PublishTimeout
 			);
 		}
 		catch (err) {
 			rej(err);
-			return;
-		}
-		if (finished) return;
-		logs = logs.split(':')[0].replace('Published to ', '');
-		res(logs);
-		var loops = currentPending.splice(0, currentPending.length);
-		loops.forEach(r => r(logs));
-
-		if (publishPending.length > 0) {
-			publishPending.forEach(r => currentPending.push(r));
-			publishPending.splice(0, publishPending.length);
-			try {
-				await IPFS.publish(lastHash);
-			}
-			catch (err) {
-				console.error('发布更新失败：' + err.message);
-			}
 		}
 	}
 	else {
@@ -416,26 +365,18 @@ IPFS.publish = hash => new Promise(async (res, rej) => {
 	}
 });
 IPFS.resolve = hash => new Promise(async (res, rej) => {
-	var logs = '', finished = false;
 	try {
 		await runCMD(
 			['name', 'resolve', hash],
 			data => {
-				logs += data + '\n';
-			},
-			err => {
-				finished = true;
-				rej(err);
-			}
+				data = data.trim().replace(/^\n+|\n+$/g, '').trim().replace(/^([\\\/])ipfs\1/i, '');
+				res(data);
+			}, rej
 		);
 	}
 	catch (err) {
 		rej(err);
-		return;
 	}
-	if (finished) return;
-	logs = logs.trim().replace(/^\n+|\n+$/g, '').trim().replace(/^([\\\/])ipfs\1/i, '');
-	res(logs);
 });
 IPFS.subscribe = hash => {
 	watchList[hash] = {
@@ -448,66 +389,48 @@ IPFS.unsubscribe = hash => {
 	delete watchList[hash];
 };
 IPFS.getConnections = hash => new Promise(async (res, rej) => {
-	var logs = '', finished = false;
 	try {
 		await runCMD(
 			['dht', 'findpeer', hash],
 			data => {
-				logs += data + '\n';
-			},
-			err => {
-				finished = true;
-				rej(err);
-			}
+				data = data.split(/\n+/).map(c => c.trim()).filter(c => c.length > 0);
+				data = data.map(l => {
+					var match = l.match(/^\/ip[46]\/([\w\.:]+)\/(tcp\d*|udp\d*)\/(\d+)$/i);
+					if (!match) return null;
+					var ip = match[1];
+					if (ip === '::1' || ip === '0.0.0.0' || ip === '127.0.0.1') return; // 去除本机地址
+					var protocol = match[2].toLowerCase();
+					if (protocol !== 'tcp') return; // 只考虑 TCP 连接
+					var port = match[3] * 1;
+					return {ip, port};
+				}).filter(c => !!c);
+				res(data);
+			}, rej
 		);
 	}
 	catch (err) {
 		rej(err);
-		return;
 	}
-	if (finished) return;
-
-	logs = logs.split(/\n+/).map(c => c.trim()).filter(c => c.length > 0);
-	logs = logs.map(l => {
-		var match = l.match(/^\/ip[46]\/([\w\.:]+)\/(tcp\d*|udp\d*)\/(\d+)$/i);
-		if (!match) return null;
-		var ip = match[1];
-		if (ip === '::1' || ip === '0.0.0.0' || ip === '127.0.0.1') return; // 去除本机地址
-		var protocol = match[2].toLowerCase();
-		if (protocol !== 'tcp') return; // 只考虑 TCP 连接
-		var port = match[3] * 1;
-		return {ip, port};
-	}).filter(c => !!c);
-	res(logs);
 });
 IPFS.getNodeInfo = () => new Promise(async (res, rej) => {
-	var logs = '', finished = false;
 	try {
 		await runCMD(
 			['id'],
 			data => {
-				logs += data + '\n';
-			},
-			err => {
-				finished = true;
-				rej(err);
-			}
+				try {
+					data = JSON.parse(data);
+				}
+				catch (err) {
+					console.error(err.message);
+					return res(null);
+				}
+				res(data);
+			}, rej
 		);
 	}
 	catch (err) {
 		rej(err);
-		return;
 	}
-	if (finished) return;
-
-	try {
-		logs = JSON.parse(logs);
-	}
-	catch (err) {
-		console.error(err.message);
-		return res(null);
-	}
-	res(logs);
 });
 
 ResourceManager.init();
