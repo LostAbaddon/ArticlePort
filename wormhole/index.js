@@ -73,17 +73,18 @@ const dealMessage = msg => {
 };
 
 Wormhole.init = (port, bootstraps) => new Promise(async res => {
+	var pubkey = await IPFS.getNodeInfo();
+	if (!pubkey || !pubkey.PublicKey) {
+		console.error('获取本地公钥失败！');
+		return res(0);
+	}
+
 	global.Keys = {};
 	global.Keys.priv = crypto.createPrivateKey({
 		key: keyUtil.unmarshal(global.NodeConfig.node.key),
 		format: 'der',
 		type: 'pkcs1'
 	});
-	var pubkey = await IPFS.getNodeInfo();
-	if (!pubkey || !pubkey.PublicKey) {
-		console.error('获取本地公钥失败！');
-		return res(0);
-	}
 	global.Keys.card = pubkey.PublicKey;
 	global.Keys.pub = crypto.createPublicKey({
 		key: keyUtil.unmarshal(pubkey.PublicKey),
