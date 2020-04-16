@@ -69,12 +69,12 @@ const Utils = {
 
 		try {
 			let pubkey = Utils.convertKey(key);
+			keyMap.set(cid, [pubkey, key]);
 		}
 		catch (err) {
 			console.error('记录节点 ' + cid + ' 的公钥失败：' + err.message);
 			return res(false);
 		}
-		keyMap.set(cid, [pubkey, key]);
 		res(true);
 		Utils.saveKeys();
 	}),
