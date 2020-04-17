@@ -201,15 +201,86 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
 	await Promise.all(Object.keys(NodeMap).map(node => Wormhole.sendToNode(node, msg)));
 	res();
 });
+Wormhole.narrowcast = (target, event, msg, encrypt=false) => new Promise(async res => {
+	if (!started) return res();
+
+	if (event instanceof Message) {
+		if (msg) event.generate(global.Keys.priv);
+		else event.generate();
+		MessageHistory.set(event.mid, event.stamp);
+		msg = JSON.stringify(event);
+	}
+	else {
+		let m = new Message();
+		m.event = event;
+		m.message = msg;
+		if (encrypt) m.generate(global.Keys.priv);
+		else m.generate();
+		MessageHistory.set(m.mid, m.stamp);
+		msg = JSON.stringify(m);
+		m = null;
+	}
+
+	await Promise.all(Object.keys(NodeMap).map(node => Wormhole.sendToNode(node, msg)));
+	res();
+});
+Wormhole.getAddressList = (node, port=null) => new Promise(async res => {
+	var conns;
+	try {
+		conns = await IPFS.getConnections(node);
+	}
+	catch (err) {
+		console.error('查询节点(' + node + ')可用连接失败：' + err.message);
+		return res(false);
+	}
+	if (!conns) return res(false);
+	console.log('发现节点(' + node + ')的可用连接(' + conns.length + '个)');
+	conns.forEach(item => item.port += 4100);
+
+	if (isNaN(port) || port === null) {
+		port = -1;
+		let hash;
+		try {
+			hash = await IPFS.resolve(global.NodeConfig.node.id);
+			let path = await IPFS.downloadFolder(node, hash);
+			let remoteInfo = await getJSON(Path.join(path, 'personel.json'));
+			if (!!remoteInfo) port = remoteInfo.publicPort;
+		} catch {}
+	}
+
+	var traffic = NodeMap[node];
+	if (!traffic) {
+		traffic = new UserTraffic(node, port);
+		NodeMap[node] = traffic;
+		conns.forEach(conn => {
+			traffic.prepare(conn.ip, conn.port);
+		});
+	}
+	else {
+		traffic.changePublicPort(port);
+		traffic.getAll().forEach(conn => {
+			traffic.record(conn.host, conn.port, false, 0, true);
+		});
+		conns.forEach(conn => {
+			var c = traffic.conns[conn.ip];
+			if (!!c) c = c.conns[conn.port];
+			if (!!c) traffic.record(conn.ip, conn.port, true, 0, true);
+			else traffic.prepare(conn.ip, conn.port);
+		});
+	}
+	res(true);
+});
 Wormhole.sendToNode = (node, msg) => new Promise(async res => {
 	if (!started) return res(false);
 
-	var conns = NodeMap[node];
-	if (!conns) return res();
-	var count = conns.getAll().length * 2;
-	if (count === 0) return res();
-	var notOK = true, done;
+	var conns = NodeMap[node], count = 0;
+	if (!!conns) count = conns.getAll().length * 2;
+	if (count === 0) {
+		let ok = await Wormhole.getAddressList(node);
+		if (!ok) return res(false);
+	}
 
+	var notOK = true, done;
 	var msgLen = msg.length;
 	while (notOK && count > 0) {
 		let conn = conns.choose(true);
@@ -312,42 +383,8 @@ Wormhole.alohaKosmos = () => new Promise(async res => {
 	timerAloha = setTimeout(Wormhole.alohaKosmos, ReAlohaDelay);
 });
 Wormhole.shakeHand = (node, port, msg) => new Promise(async res => {
-	var conns;
-	try {
-		conns = await IPFS.getConnections(node);
-	}
-	catch (err) {
-		console.error('查询节点(' + node + ')可用连接失败：' + err.message);
-		delayAction.push(['shakeHand', node, port, msg]);
-		setTimeout(delayHandler, 1000 * 30);
-		res();
-		return;
-	}
-	console.log('发现节点(' + node + ')的可用连接(' + conns.length + '个)');
-
-	conns.forEach(item => item.port += 4100);
-
-	var traffic = NodeMap[node];
-	if (!traffic) {
-		traffic = new UserTraffic(node, port);
-		NodeMap[node] = traffic;
-		conns.forEach(conn => {
-			traffic.prepare(conn.ip, conn.port);
-		});
-	}
-	else {
-		traffic.changePublicPort(port);
-		traffic.getAll().forEach(conn => {
-			traffic.record(conn.host, conn.port, false, 0, true);
-		});
-		conns.forEach(conn => {
-			var c = traffic.conns[conn.ip];
-			if (!!c) c = c.conns[conn.port];
-			if (!!c) traffic.record(conn.ip, conn.port, true, 0, true);
-			else traffic.prepare(conn.ip, conn.port);
-		});
-	}
-
+	var ok = await Wormhole.getAddressList(node, port);
+	if (!ok) return res();
 	await Wormhole.sendToNode(node, msg);
 	res();
 });
