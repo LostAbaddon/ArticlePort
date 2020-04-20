@@ -1,3 +1,6 @@
+const RequestList = new Map();
+_('Wormhole.Requests', RequestList);
+
 const Net = require('net');
 const crypto = require("crypto");
 const {UserTraffic, ConnManager} = require('./traffic');
@@ -10,6 +13,7 @@ const LRUCache = _('DataStore.LRUCache');
 const Wormhole = {};
 const NodeMap = {};
 const ReAlohaDelay = 1000 * 60 * 3;
+const ReplyDelay = 1000 * 60 * 5;
 const MessageHistory = new LRUCache(1000);
 
 var timerAloha = null;
@@ -65,11 +69,19 @@ const parseMessage = msg => {
 const dealMessage = msg => {
 	var node = msg.sender;
 	var action = msg.event;
-	var message = msg.message;
 	if (!node || !action) return;
+
+	var message = msg.message;
 	action = Responsor[action];
 	if (!action) return;
 	action(node, message, msg);
+
+	if (msg.type === 1) {
+		Wormhole.broadcast(msg, null);
+	}
+	else if (msg.type === 2 && msg.target !== global.NodeConfig.node.id) {
+		Wormhole.narrowcast(msg.target, msg, null);
+	}
 };
 
 Wormhole.init = (port, bootstraps) => new Promise(async res => {
@@ -182,8 +194,8 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
 	if (!started) return res();
 
 	if (event instanceof Message) {
-		if (msg) event.generate(global.Keys.priv);
-		else event.generate();
+		if (msg === true) event.generate(global.Keys.priv);
+		else if (msg === false) event.generate();
 		MessageHistory.set(event.mid, event.stamp);
 		msg = JSON.stringify(event);
 	}
@@ -191,8 +203,8 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
 		let m = new Message();
 		m.event = event;
 		m.message = msg;
-		if (encrypt) m.generate(global.Keys.priv);
-		else m.generate();
+		if (encrypt === true) m.generate(global.Keys.priv);
+		else if (encrypt === false) m.generate();
 		MessageHistory.set(m.mid, m.stamp);
 		msg = JSON.stringify(m);
 		m = null;
@@ -201,12 +213,12 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
 	await Promise.all(Object.keys(NodeMap).map(node => Wormhole.sendToNode(node, msg)));
 	res();
 });
-Wormhole.narrowcast = (target, event, msg, encrypt=false) => new Promise(async res => {
+Wormhole.narrowcast = (target, event, msg=false, encrypt=false) => new Promise(async res => {
 	if (!started) return res();
 
 	if (event instanceof Message) {
-		if (msg) event.generate(global.Keys.priv);
-		else event.generate();
+		if (msg === true) event.generate(global.Keys.priv);
+		else if (msg === false) event.generate();
 		MessageHistory.set(event.mid, event.stamp);
 		msg = JSON.stringify(event);
 	}
@@ -214,14 +226,33 @@ Wormhole.narrowcast = (target, event, msg, encrypt=false) => new Promise(async r
 		let m = new Message();
 		m.event = event;
 		m.message = msg;
-		if (encrypt) m.generate(global.Keys.priv);
-		else m.generate();
+		if (encrypt === true) m.generate(global.Keys.priv);
+		else if (encrypt === false) m.generate();
 		MessageHistory.set(m.mid, m.stamp);
 		msg = JSON.stringify(m);
 		m = null;
 	}
 
-	await Promise.all(Object.keys(NodeMap).map(node => Wormhole.sendToNode(node, msg)));
+	var nodeList = [];
+
+	if (!!NodeMap[node]) {
+		nodeList.push(node);
+	}
+	else {
+		let l = keyUtil.getPosition(target);
+		for (let n in NodeMap) {
+			let m = keyUtil.getPosition(n);
+			m = keyUtil.getDistance(l, m);
+			if (m <= keyUtil.limitRange) {
+				nodeList.push(n);
+			}
+		}
+		if (nodeList.length === 0) {
+			for (let n in NodeMap) nodeList.push(n);
+		}
+	}
+
+	await Promise.all(nodeList.map(node => Wormhole.sendToNode(node, msg)));
 	res();
 });
 Wormhole.getAddressList = (node, port=null) => new Promise(async res => {
@@ -235,6 +266,7 @@ Wormhole.getAddressList = (node, port=null) => new Promise(async res => {
 	}
 	if (!conns) return res(false);
 	console.log('发现节点(' + node + ')的可用连接(' + conns.length + '个)');
+	if (conns.length === 0) return res(false);
 	conns.forEach(item => item.port += 4100);
 
 	if (isNaN(port) || port === null) {
@@ -395,6 +427,19 @@ Wormhole.shakeHand2Bootstraps = msg => new Promise(async res => {
 	});
 	await Promise.all(actions);
 	res();
+});
+Wormhole.request = (msg, encrypt, target, limit=1, timeout=ReplyDelay) => new Promise(res => {
+	if (encrypt) msg.generate(global.Keys.priv);
+	else msg.generate();
+	var mid = msg.mid;
+	RequestList.set(mid, [res, limit, [], timeout, Date.now(), setTimeout(() => {
+		var item = RequestList.get(mid);
+		if (!item) return;
+		item[0](item[2], new Error('响应超时'));
+		RequestList.delete(mid);
+	}, timeout)]);
+	if (!!target) Wormhole.narrowcast(target, msg);
+	else Wormhole.broadcast(msg);
 });
 
 global.Wormhole = Wormhole;

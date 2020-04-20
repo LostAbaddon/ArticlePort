@@ -1,4 +1,11 @@
+/**
+ *	返回格式：
+ *	request:	被回复信息的 mid
+ *	data:		回复内容
+ **/
+
 const keyUtil = require('./keyUtils');
+const RequestList = _('Wormhole.Requests'); // 每项参数：res、符合要求的回复数、现有回复列表、超时时长、发送时间、超时Timer
 
 const getUserContent = (node, hash) => new Promise(async res => {
 	var path;
@@ -13,45 +20,6 @@ const getUserContent = (node, hash) => new Promise(async res => {
 	global.ContentUpdated(node, hash, path);
 	res(true);
 });
-
-const CIDBYTES = 62;
-const CIDLENGTH = 44;
-const char2num = char => {
-	char = char.charCodeAt(0);
-	if (char <= 57 && char >= 48) {
-		return char - 48;
-	}
-	else if (char <= 122 && char >= 97) {
-		return char - 87;
-	}
-	else if (char <= 90 && char >= 65) {
-		return char - 29;
-	}
-	return 0;
-};
-const cid2nums = cid => {
-	var result = [], len = cid.length;
-	for (let i = 0; i < len; i ++) {
-		result[i] = char2num(cid.substr(i, 1));
-	}
-	return result;
-};
-const loopDist = (na, nb, max) => {
-	var dist1 = Math.abs(na - nb);
-	var dist2 = max - dist1;
-	return dist1 < dist2 ? dist1 : dist2;
-};
-const simiDist = (numa, numb) => {
-	var len = numa.length > numb.length ? numa.length : numb.length;
-	var dist = 0;
-	for (let i = 0; i < len; i ++) {
-		let a = numa[i] || 0;
-		let b = numb[i] || 0;
-		dist += loopDist(a, b, CIDBYTES);
-	}
-	return dist;
-};
-var myCID;
 
 const Responsor = {};
 Responsor.shakehand = async (sender, msg) => {
@@ -81,15 +49,25 @@ Responsor.NewContent = async (sender, hash, msg) => {
 		console.log('已预取内容 ' + hash);
 	}
 	else {
-		myCID = myCID || cid2nums(global.NodeConfig.node.id);
-		let cid = cid2nums(hash);
-		let dist = simiDist(myCID, cid);
-		if (dist < CIDBYTES / 4 * CIDLENGTH / 2) {
+		let dist = keyUtil.getDistance(keyUtil.localPosition, keyUtil.getPosition(hash));
+		if (dist < keyUtil.limitDistance) {
 			await global.IPFS.downloadFile(hash);
 			console.log('已预取内容 ' + hash);
 		}
 	}
 	global.Wormhole.broadcast(msg);
+};
+Responsor.reply = (sender, msg) => {
+	var id = msg.request;
+	var item = RequestList.get(id);
+	if (!item) return;
+	item[2].push(msg.data);
+	var now = Date.now();
+	if (now - item[4] > item[3] || item[2].length >= item[1]) {
+		if (!!item[5]) clearTimeout(item[5]);
+		item[0](item[2], null);
+		RequestList.delete(id);
+	}
 };
 
 module.exports = Responsor;

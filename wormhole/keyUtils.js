@@ -10,8 +10,50 @@ const getJSON = _('Utils.getJSON');
 const keyMap = new Map();
 var filepath;
 
+const CIDBYTES = 62;
+const CIDLENGTH = 44;
+const LimitDistance = CIDBYTES / 4 * CIDLENGTH / 2;
+const LimitRange = CIDBYTES / 4 * CIDLENGTH;
+const char2num = char => {
+	char = char.charCodeAt(0);
+	if (char <= 57 && char >= 48) {
+		return char - 48;
+	}
+	else if (char <= 122 && char >= 97) {
+		return char - 87;
+	}
+	else if (char <= 90 && char >= 65) {
+		return char - 29;
+	}
+	return 0;
+};
+const cid2nums = cid => {
+	var result = [], len = cid.length;
+	for (let i = 0; i < len; i ++) {
+		result[i] = char2num(cid.substr(i, 1));
+	}
+	return result;
+};
+const loopDist = (na, nb, max) => {
+	var dist1 = Math.abs(na - nb);
+	var dist2 = max - dist1;
+	return dist1 < dist2 ? dist1 : dist2;
+};
+const simiDist = (numa, numb) => {
+	var len = numa.length > numb.length ? numa.length : numb.length;
+	var dist = 0;
+	for (let i = 0; i < len; i ++) {
+		let a = numa[i] || 0;
+		let b = numb[i] || 0;
+		dist += loopDist(a, b, CIDBYTES);
+	}
+	return dist;
+};
+var myCID;
+
 const Utils = {
 	init: () => new Promise(async res => {
+		myCID = cid2nums(global.NodeConfig.node.id);
 		filepath = Path.join(process.cwd(), global.NodeConfig.storage, 'keys.json');
 		var keys;
 		try {
@@ -84,6 +126,17 @@ const Utils = {
 			keys[cid] = key[1];
 		}
 		saveFile(filepath, JSON.stringify(keys));
+	},
+	getPosition: cid => cid2nums(cid),
+	getDistance: (id1, id2) => simiDist(id1, id2),
+	get localPosition () {
+		return myCID;
+	},
+	get limitDistance () {
+		return LimitDistance;
+	},
+	get limitRange () {
+		return LimitRange;
 	},
 };
 
