@@ -38,15 +38,15 @@ const delayHandler = () => {
 	});
 };
 
-const parseMessage = msg => {
+const parseMessage = msg => new Promise(async res => {
 	try {
 		msg = msg.toString();
 		msg = JSON.parse(msg);
 	}
 	catch {
-		return null;
+		return res(null);
 	}
-	if (MessageHistory.has(msg.mid)) return null;
+	if (MessageHistory.has(msg.mid)) return res(null);
 	MessageHistory.set(msg.mid, msg.stamp);
 
 	var m = new Message();
@@ -58,14 +58,20 @@ const parseMessage = msg => {
 	m.message = msg.message;
 	var pubkey = keyUtil.getPubKey(m.sender);
 	if (!pubkey) {
-		let card = Wormhole.getIDCard().copy();
-		card.generate();
-		card = JSON.stringify(card);
-		Wormhole.shakeHand(msg.sender, undefined, card);
+		let msg = new Message();
+		msg.event = 'requestPublicKey';
+		msg.message = m.sender;
+		msg.type = 2;
+		msg.target = m.sender;
+		let [keys, err] = await Wormhole.request(msg, false, m.sender, 1, ReplyDelay);
+		if (!!keys && !!keys[0]) {
+			pubkey = keys[0];
+			keyUtil.setPubKey(m.sender, pubkey);
+		}
 	}
-	if (!m.verify(pubkey)) return null;
-	return m;
-};
+	if (!m.verify(pubkey)) return res(null);
+	return res(m);
+});
 const dealMessage = msg => {
 	var node = msg.sender;
 	var action = msg.event;
@@ -144,9 +150,9 @@ Wormhole.createServer = port => new Promise(res => {
 		var user, conn;
 		console.log('与远端建立连接:' + address + ':' + port);
 
-		remote.on('data', msg => {
+		remote.on('data', async msg => {
 			var len = msg.length;
-			msg = parseMessage(msg);
+			msg = await parseMessage(msg);
 			if (!msg) return;
 
 			user = NodeMap[msg.sender];
@@ -372,9 +378,9 @@ Wormhole.sendToAddr = (info, conn, msg) => new Promise(res => {
 		});
 	});
 	socket.resList = [res];
-	socket.on('data', msg => {
+	socket.on('data', async msg => {
 		var len = msg.length;
-		msg = parseMessage(msg);
+		msg = await parseMessage(msg);
 		if (!msg) return;
 
 		if (!!msg.sender && !!msg.event) info.record(conn.host, conn.port, true, len, true);
@@ -435,7 +441,7 @@ Wormhole.request = (msg, encrypt, target, limit=1, timeout=ReplyDelay) => new Pr
 	RequestList.set(mid, [res, limit, [], timeout, Date.now(), setTimeout(() => {
 		var item = RequestList.get(mid);
 		if (!item) return;
-		item[0](item[2], new Error('响应超时'));
+		item[0]([item[2], new Error('响应超时')]);
 		RequestList.delete(mid);
 	}, timeout)]);
 	if (!!target) Wormhole.narrowcast(target, msg);

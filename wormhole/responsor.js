@@ -65,7 +65,7 @@ Responsor.reply = (sender, msg) => {
 	var now = Date.now();
 	if (now - item[4] > item[3] || item[2].length >= item[1]) {
 		if (!!item[5]) clearTimeout(item[5]);
-		item[0](item[2], null);
+		item[0]([item[2], null]);
 		RequestList.delete(id);
 	}
 };
