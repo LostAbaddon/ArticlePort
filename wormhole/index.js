@@ -64,15 +64,16 @@ const parseMessage = msg => new Promise(async res => {
 		msg.type = 2;
 		msg.target = m.sender;
 		let [keys, err] = await Wormhole.request(msg, false, m.sender, 1, ReplyDelay);
-		if (!!keys && !!keys[0]) {
-			pubkey = keys[0];
-			keyUtil.setPubKey(m.sender, pubkey);
+		if (!!keys && Object.keys(keys).length > 0) {
+			pubkey = Object.keys[keys][0];
+			pubkey = keys[pubkey];
+			if (!!pubkey) keyUtil.setPubKey(m.sender, pubkey);
 		}
 	}
 	if (!m.verify(pubkey)) return res(null);
 	return res(m);
 });
-const dealMessage = msg => {
+const dealMessage = async msg => {
 	var node = msg.sender;
 	var action = msg.event;
 	if (!node || !action) return;
@@ -80,7 +81,8 @@ const dealMessage = msg => {
 	var message = msg.message;
 	action = Responsor[action];
 	if (!action) return;
-	action(node, message, msg);
+	var done = await action(node, message, msg);
+	if (done) return;
 
 	if (msg.type === 1) {
 		Wormhole.broadcast(msg, null);
@@ -219,7 +221,7 @@ Wormhole.broadcast = (event, msg, encrypt=false) => new Promise(async res => {
 	await Promise.all(Object.keys(NodeMap).map(node => Wormhole.sendToNode(node, msg)));
 	res();
 });
-Wormhole.narrowcast = (target, event, msg=false, encrypt=false) => new Promise(async res => {
+Wormhole.narrowcast = (target, event, msg=false, encrypt=false, limit=1) => new Promise(async res => {
 	if (!started) return res();
 
 	if (event instanceof Message) {
@@ -253,7 +255,9 @@ Wormhole.narrowcast = (target, event, msg=false, encrypt=false) => new Promise(a
 				nodeList.push(n);
 			}
 		}
-		if (nodeList.length === 0) {
+		if (isNaN(limit)) limit = 1;
+		if (nodeList.length < limit) {
+			nodeList = [];
 			for (let n in NodeMap) nodeList.push(n);
 		}
 	}
@@ -438,7 +442,7 @@ Wormhole.request = (msg, encrypt, target, limit=1, timeout=ReplyDelay) => new Pr
 	if (encrypt) msg.generate(global.Keys.priv);
 	else msg.generate();
 	var mid = msg.mid;
-	RequestList.set(mid, [res, limit, [], timeout, Date.now(), setTimeout(() => {
+	RequestList.set(mid, [res, limit, {}, timeout, Date.now(), setTimeout(() => {
 		var item = RequestList.get(mid);
 		if (!item) return;
 		item[0]([item[2], new Error('响应超时')]);

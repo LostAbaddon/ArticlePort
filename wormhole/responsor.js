@@ -6,6 +6,7 @@
 
 const keyUtil = require('./keyUtils');
 const RequestList = _('Wormhole.Requests'); // 每项参数：res、符合要求的回复数、现有回复列表、超时时长、发送时间、超时Timer
+const Message = require('./message');
 
 const getUserContent = (node, hash) => new Promise(async res => {
 	var path;
@@ -22,7 +23,7 @@ const getUserContent = (node, hash) => new Promise(async res => {
 });
 
 const Responsor = {};
-Responsor.shakehand = async (sender, msg) => {
+Responsor.shakehand = (sender, msg) => {
 	var hash = msg.hash;
 	keyUtil.setPubKey(sender, msg.key);
 
@@ -36,13 +37,15 @@ Responsor.shakehand = async (sender, msg) => {
 	}
 
 	if (global.NodeManager.didSubscribed(sender)) getUserContent(sender, hash);
+	return true;
 };
-Responsor.StarPortUpdated = async (sender, msg) => {
+Responsor.StarPortUpdated = (sender, msg) => {
 	var hash = msg.hash;
 	keyUtil.setPubKey(sender, msg.key);
 	if (global.NodeManager.didSubscribed(sender)) getUserContent(sender, hash);
+	return true;
 };
-Responsor.NewContent = async (sender, hash, msg) => {
+Responsor.NewContent = (sender, hash, msg) => new Promise(async res => {
 	console.log('节点 (' + sender + ') 发布新内容: ' + hash);
 	if (global.NodeManager.didSubscribed(sender)) {
 		await global.IPFS.downloadFile(hash);
@@ -56,18 +59,31 @@ Responsor.NewContent = async (sender, hash, msg) => {
 		}
 	}
 	global.Wormhole.broadcast(msg);
+	res(false);
+});
+Responsor.requestPublicKey = (sender, target, msg) => {
+	if (target !== global.NodeConfig.node.id) return false;
+
+	var reply = {
+		request: msg.mid,
+		data: global.Keys.card
+	};
+	reply.event = 'reply';
+	Wormhole.narrowcast(sender, 'reply', reply);
+	return true;
 };
 Responsor.reply = (sender, msg) => {
 	var id = msg.request;
 	var item = RequestList.get(id);
-	if (!item) return;
-	item[2].push(msg.data);
+	if (!item) return false;
+	item[2][sender] = msg.data;
 	var now = Date.now();
-	if (now - item[4] > item[3] || item[2].length >= item[1]) {
+	if (now - item[4] > item[3] || Object.keys(item[2]).length >= item[1]) {
 		if (!!item[5]) clearTimeout(item[5]);
 		item[0]([item[2], null]);
 		RequestList.delete(id);
 	}
+	return true;
 };
 
 module.exports = Responsor;
