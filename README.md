@@ -2,7 +2,7 @@
 
 与 ArticleUtils 配套使用的个人后端，也支持 HTTP 接入。
 
-- **版本**： 0.2.1
+- **版本**： 0.2.2
 - **作者**： [LostAbaddon](mailto:lostabaddon@gmail.com)
 - **网址**： [GitHub](https://github.com/LostAbaddon/ArticlePort)
 
@@ -61,7 +61,6 @@
 		*	通过 HTTP 调用 IPFS
 	-	虫洞网络
 		基于 IPFS DHT 的 PEER 查询与直连功能，从而避免 IPNS 过慢的问题
-		*	自由广播、定向广播与回复
 +	重要功能
 	-	私人信道	
 	-	频道历史数据支持分页保存，避免单个文件过大

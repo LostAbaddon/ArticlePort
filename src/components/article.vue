@@ -98,8 +98,10 @@ export default {
 			MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
 
 			this.show = true;
+			history.pushState(null, null, '/?article=' + data.id);
 		});
 		eventBus.on('hideArticle', () => {
+			history.pushState(null, null, '/');
 			this.show = false;
 			eventBus.emit('hideArticleTitle');
 		});

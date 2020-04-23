@@ -62,6 +62,21 @@ export default {
 			});
 			eventBus.emit('updatePublicPort', msg.publicPort);
 			eventBus.emit('updateTimeline', msg.timeline);
+
+			var query = {};
+			location.search.toString().replace(/^\?+/, '').split(/\$+/).forEach(l => {
+				l = l.split('=');
+				var k = l.splice(0, 1)[0];
+				l = l.join('=');
+				query[k] = l;
+			});
+			if (!!query.article) {
+				eventBus.emit('loadStart');
+				this.$net.emit('GetArticleByID', {
+					channel: 'ArticleMarket',
+					id: query.article
+				});
+			}
 		});
 		this.$net.register('TimelineUpdated', (msg, err, event) => {
 			this.$net.emit('GetTimeline', ['ArticleMarket', 'ArticleComments']);

@@ -1,7 +1,7 @@
 {
   "name": "ArticlePort",
   "description": "文章插件管理后台",
-  "version": "0.0.1",
+  "version": "0.2.2",
   "scripts": {
     "back": "nodemon ./server/index.js",
     "front": "vue-cli-service serve",
