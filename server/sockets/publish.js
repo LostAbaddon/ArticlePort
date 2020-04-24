@@ -133,7 +133,7 @@ const saveResource = async (data, socket, event) => {
 	if (!!hash) {
 		socket.send('saveResource', {
 			ok:true,
-			url: 'gfs://starport/resource/' + hash,
+			url: 'http://starport.contverse.gfs/resource/' + hash + '.' + ext,
 			target: data.id,
 			name: data.name
 		});

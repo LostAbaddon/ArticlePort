@@ -110,12 +110,12 @@ const resolveAndFetch = async node => {
 	}
 	setTimeout(() => resolveAndFetch(node), UpdateDelay);
 };
-const getLocalFile = filepath => new Promise((res, rej) => {
-	FS.readFile(filepath, 'utf8', (err, data) => {
+const getLocalFile = (filepath, encoding='utf8') => new Promise((res, rej) => {
+	FS.readFile(filepath, {encoding}, (err, data) => {
 		if (!!err) {
 			return rej(err);
 		}
-		data = data.toString();
+		if (encoding !== null) data = data.toString();
 		res(data);
 	});
 });
@@ -298,11 +298,12 @@ IPFS.downloadFolder = (cid, hash) => new Promise(async (res, rej) => {
 		rej(err);
 	}
 });
-IPFS.downloadFile = hash => new Promise(async (res, rej) => {
+IPFS.downloadFile = (hash, isText=true) => new Promise(async (res, rej) => {
 	var filepath = Path.join(FolderPath, hash);
 	var file;
 	try {
-		file = await getLocalFile(filepath);
+		if (isText) file = await getLocalFile(filepath);
+		else file = await getLocalFile(filepath, null);
 	}
 	catch {
 		file = null;
@@ -317,7 +318,8 @@ IPFS.downloadFile = hash => new Promise(async (res, rej) => {
 			['get', hash, '--output=' + filepath],
 			async data => {
 				try {
-					file = await getLocalFile(filepath);
+					if (isText) file = await getLocalFile(filepath);
+					else file = await getLocalFile(filepath, null);
 					ResourceManager.set(hash, false);
 				}
 				catch {

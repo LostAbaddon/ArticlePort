@@ -2,7 +2,6 @@ const Koa = require('koa');
 const KoaBody = require('koa-body');
 const KoaStatic = require('koa-static');
 const ResponserList = require('./responser');
-// const Resources = require('./resources');
 const IO = require('./socket');
 const DefaultType = 'application/json';
 
@@ -29,7 +28,7 @@ const matchRouter = (path, method) => {
 		if (!res) continue;
 		if (!res[method]) continue;
 		responser = res;
-		subs = path[0].replace(p, '').split('/');
+		subs = path[0].replace(p, '').split('/').filter(p => !!p && p.length > 0);
 		break;
 	}
 	return [responser, subs];
@@ -116,12 +115,14 @@ app.use(async ctx => {
 		return;
 	}
 
-	ctx.type = type;
-	ctx.body = {
-		data,
-		code: 0,
-		ok: true
-	};
+	if (type !== "auto") {
+		ctx.type = type;
+		ctx.body = {
+			data,
+			code: 0,
+			ok: true
+		};
+	}
 	console.log('result: JobDone');
 });
 
