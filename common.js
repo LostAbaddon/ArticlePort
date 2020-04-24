@@ -38,8 +38,9 @@ const getJSON = path => new Promise(res => {
 		res(data);
 	});
 });
-const saveFile = (path, content) => new Promise((res, rej) => {
-	FS.writeFile(path, content, 'utf8', err => {
+const saveFile = (path, content, coding='utf8') => new Promise((res, rej) => {
+	if (coding !== null && !String.is(content) && !Number.is(content) && !Boolean.is(content)) content = JSON.stringify(content);
+	FS.writeFile(path, content, coding, err => {
 		if (!!err) rej(err);
 		else res();
 	})

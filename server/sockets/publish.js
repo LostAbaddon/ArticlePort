@@ -2,6 +2,9 @@
 
 const Path = require('path');
 const FS = require('fs');
+const crypto = require("crypto");
+const multihash = require('multihashes');
+const base58 = require('bs58');
 const saveFile = _('Utils.saveFile');
 
 const FieldPath = Path.join(__dirname, '../../field');
@@ -10,7 +13,7 @@ _("Utils").preparePath(FieldPath, ok => {
 });
 var storagePath;
 
-const callback = async (data, socket, event) => {
+const publish = async (data, socket, event) => {
 	if (!data.id) return;
 
 	storagePath = storagePath || Path.join(__dirname, '../../' + global.NodeConfig.storage);
@@ -92,8 +95,62 @@ const callback = async (data, socket, event) => {
 		hash: result
 	});
 };
+const saveResource = async (data, socket, event) => {
+	if (!data || !data.data) {
+		socket.send('saveResource', null, "数据丢失");
+		return;
+	}
+	var ext = data.name.split(/\.+/).last;
+	if (!ext) ext = data.type.split(/[\\\/]+/).last;
+	if (!ext) {
+		socket.send('saveResource', null, "无效的后缀名");
+		return;
+	}
+	var filename = crypto.createHash('sha256').update(data.data).digest();
+	filename = await multihash.encode(filename, 'sha2-256');
+	filename = base58.encode(filename) + '.' + ext;
+	var filepath = Path.join(FieldPath, filename);
 
-module.exports = {
-	event: 'publish',
-	callback
+	try {
+		await saveFile(filepath, data.data, null);
+	} catch (err) {
+		console.error(err);
+		socket.send('saveResource', null, err.message);
+		return;
+	}
+
+	var hash;
+	try {
+		hash = await IPFS.uploadFile(filepath);
+	} catch (err) {
+		console.error(err);
+	}
+	FS.unlink(filepath, err => {
+		if (!err) return;
+		console.log('删除临时文件 ' + filepath + ' 时出错: ', err);
+	});
+
+	if (!!hash) {
+		socket.send('saveResource', {
+			ok:true,
+			url: 'gfs://starport/resource/' + hash,
+			target: data.id,
+			name: data.name
+		});
+		console.log('成功上传资源：' + filename + ' (' + hash + ')');
+	}
+	else {
+		socket.send('saveResource', null, '上传到星网失败')
+	}
 };
+
+module.exports = [
+	{
+		event: 'publish',
+		callback: publish
+	},
+	{
+		event: 'saveResource',
+		callback: saveResource
+	}
+];
