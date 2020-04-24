@@ -1,5 +1,5 @@
 <template>
-	<div id="app" @keyup.esc="onClose" @keyup.left="turnLeft" @keyup.right="turnRight" tabindex="0">
+	<div id="app" @keyup.left="turnLeft" @keyup.right="turnRight" tabindex="0">
 		<toolbar />
 		<showroom />
 		<article-container />
@@ -43,12 +43,17 @@ export default {
 		portManager
 	},
 	mounted () {
+		document.body.addEventListener('keyup', evt => {
+			if (evt.which !== 27) return;
+			this.onClose();
+		});
 		eventBus.on('showImageWall', () => {
 			this.imageShown = true;
 		});
 		eventBus.on('imageWallHidden', () => {
 			this.imageShown = false;
 		});
+		eventBus.on('ToggleEsc', () => this.onClose());
 		this.$net.register('RequestStarPortInfo', (msg, err, event) => {
 			console.log(msg);
 			eventBus.emit('loadFinish');
@@ -90,6 +95,7 @@ export default {
 	},
 	methods: {
 		onClose () {
+			console.log('~~~~~~~~~~~~~~~~~~~~~');
 			if (this.imageShown) eventBus.emit('hideImageWall');
 			else eventBus.emit('hideArticle');
 		},

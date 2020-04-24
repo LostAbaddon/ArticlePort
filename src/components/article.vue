@@ -1,10 +1,13 @@
 <template>
-	<div class="article-container" :shown="show ? 'true' : 'false'" @click="onClick">
+	<div class="article-container" :shown="show ? 'true' : 'false'">
+		<toc :list="contentList"></toc>
+		<div class="container" @click="onClick"></div>
 	</div>
 </template>
 
 <script>
 import eventBus from './eventbus.js';
+import toc from './toc.vue';
 
 const newEle = (tagName, classList, id) => {
 	var ele = document.createElement(tagName);
@@ -24,12 +27,17 @@ export default {
 	name: "articleContainer",
 	data () {
 		return {
-			show: false
+			show: false,
+			contentList: []
 		}
+	},
+	components: {
+		toc
 	},
 	mounted () {
 		net = this.$net;
-		InitNotes(this.$el);
+		var container = this.$el.querySelector('div.container');
+		InitNotes(container);
 		MathJax.Hub.Config({
 			extensions: ["tex2jax.js"],
 			TeX: {
@@ -56,8 +64,8 @@ export default {
 			});
 
 			// 添加文件信息
-			this.$el.innerHTML = content.content;
-			var article = this.$el.querySelector('article');
+			container.innerHTML = content.content;
+			var article = container.querySelector('article');
 			article.classList.add('scroller');
 			var info = newEle('header', 'article-info');
 			var inner = '<div class="article-author-publisher"><span class="article-author">作者：';
@@ -97,10 +105,26 @@ export default {
 			// LaTeX 显示
 			MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
 
+			// 获取目录
+			var toc = container.querySelectorAll('aside.content-table .content-item');
+			if (!!toc) {
+				this.contentList.splice(0, this.contentList.length);
+				[].filter.call(toc, item => {
+					return item.classList.contains('level-1') || item.classList.contains('level-2')
+				}).forEach(item => {
+					var level = item.classList.contains('level-1') ? 1 : 2;
+					var title = item.querySelector('a.content-link');
+					var link = title.getAttribute('href');
+					title = title.innerHTML;
+					this.contentList.push({level, title, link});
+				});
+			}
+
 			this.show = true;
 			history.pushState(null, null, '/?article=' + data.id);
 		});
 		eventBus.on('hideArticle', () => {
+			this.contentList.splice(0, this.contentList.length);
 			history.pushState(null, null, '/');
 			this.show = false;
 			eventBus.emit('hideArticleTitle');
@@ -230,7 +254,7 @@ export default {
 }
 </style>
 <style type="text/css">
-.article-container > article {
+.article-container .container > article {
 	display: block;
 	box-sizing: border-box;
 	max-width: 850px;
@@ -240,39 +264,39 @@ export default {
 	margin-right: auto;
 	overflow: auto;
 }
-.article-container > article ul,
-.article-container > article ol {
+.article-container .container > article ul,
+.article-container .container > article ol {
 	margin-block-start: 1em;
 	margin-block-end: 1em;
 	margin-inline-start: 0px;
 	margin-inline-end: 0px;
 	padding-inline-start: 40px;
 }
-.article-container > article ul {
+.article-container .container > article ul {
 	list-style-type: disc;
 }
-.article-container > article ul ul {
+.article-container .container > article ul ul {
 	list-style-type: circle;
 }
-.article-container > article ul ul ul {
+.article-container .container > article ul ul ul {
 	list-style-type: square;
 }
-.article-container > article ul ul ul ul {
+.article-container .container > article ul ul ul ul {
 	list-style-type: square;
 }
-.article-container > article ol {
+.article-container .container > article ol {
 	list-style-type: decimal;
 }
-.article-container > article ol ol {
+.article-container .container > article ol ol {
 	list-style-type: upper-roman;
 }
-.article-container > article ol ol ol {
+.article-container .container > article ol ol ol {
 	list-style-type: lower-alpha;
 }
-.article-container > article ol ol ol ol {
+.article-container .container > article ol ol ol ol {
 	list-style-type: lower-greek;
 }
-.article-container > article > header.article-info {
+.article-container .container > article > header.article-info {
 	margin-top: 10px;
 	margin-bottom: 50px;
 	font-size: 14px;
@@ -280,34 +304,34 @@ export default {
 	color: rgb(224, 240, 233);
 	cursor: default;
 }
-.article-container > article > header.article-info .article-publisher {
+.article-container .container > article > header.article-info .article-publisher {
 	margin-left: 20px;
 }
-.article-container > article p {
+.article-container .container > article p {
 	word-break: break-word;
 }
-.article-container > article > section.history-versions {
+.article-container .container > article > section.history-versions {
 	margin-top: 50px;
 }
-.article-container > article > section.history-versions h1 {
+.article-container .container > article > section.history-versions h1 {
 	margin-top: 50px;
 	margin-bottom: 40px;
 	font-size: 30px;
 	font-weight: bolder;
 	line-height: 36px;
 }
-.article-container > article > section.history-versions li {
+.article-container .container > article > section.history-versions li {
 	cursor: pointer;
 	user-select: none;
 }
-.article-container > article div.resource.image {
+.article-container .container > article div.resource.image {
 	cursor: pointer;
 }
-.article-container > article div.image-wall div.resource.image {
+.article-container .container > article div.image-wall div.resource.image {
 	width: 100%;
 }
-.article-container > article .endnote-chapter p,
-.article-container > article .endnote-chapter li {
+.article-container .container > article .endnote-chapter p,
+.article-container .container > article .endnote-chapter li {
 	word-break: break-word;
 }
 </style>
