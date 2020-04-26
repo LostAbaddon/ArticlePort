@@ -1,5 +1,10 @@
 <template>
-	<div id="app" @keyup.left="turnLeft" @keyup.right="turnRight" tabindex="0">
+	<div id="app"
+		@keyup.left="turnLeft" @keyup.right="turnRight"
+		@keyup.up="moveUp" @keyup.down="moveDown"
+		@keyup.home="goTop" @keyup.end="goBottom"
+		@keyup.page-up="goPrev" @keyup.page-down="goNext"
+		tabindex="0">
 		<toolbar />
 		<showroom />
 		<article-container />
@@ -95,7 +100,6 @@ export default {
 	},
 	methods: {
 		onClose () {
-			console.log('~~~~~~~~~~~~~~~~~~~~~');
 			if (this.imageShown) eventBus.emit('hideImageWall');
 			else eventBus.emit('hideArticle');
 		},
@@ -106,6 +110,24 @@ export default {
 		turnRight () {
 			if (!this.imageShown) return;
 			eventBus.emit('turnNextImage');
+		},
+		moveUp (evt) {
+			eventBus.emit('Article:Go:Up', evt.shiftKey);
+		},
+		moveDown (evt) {
+			eventBus.emit('Article:Go:Down', evt.shiftKey);
+		},
+		goTop () {
+			eventBus.emit('Article:Go:Top');
+		},
+		goBottom () {
+			eventBus.emit('Article:Go:Bottom');
+		},
+		goPrev () {
+			eventBus.emit('Article:Go:Prev');
+		},
+		goNext () {
+			eventBus.emit('Article:Go:Next');
 		}
 	}
 }
@@ -127,6 +149,7 @@ html, body {
 	height: 100%;
 	background-color: rgb(22, 24, 35);
 	color: rgb(227, 239, 253);
+	outline: none;
 }
 
 .scroller::-webkit-scrollbar {

@@ -22,6 +22,7 @@ const newEle = (tagName, classList, id) => {
 };
 
 var net;
+var article;
 
 export default {
 	name: "articleContainer",
@@ -65,7 +66,7 @@ export default {
 
 			// 添加文件信息
 			container.innerHTML = content.content;
-			var article = container.querySelector('article');
+			article = container.querySelector('article');
 			article.classList.add('scroller');
 			var info = newEle('header', 'article-info');
 			var inner = '<div class="article-author-publisher"><span class="article-author">作者：';
@@ -107,8 +108,8 @@ export default {
 
 			// 获取目录
 			var toc = container.querySelectorAll('aside.content-table .content-item');
+			this.contentList.splice(0, this.contentList.length);
 			if (!!toc) {
-				this.contentList.splice(0, this.contentList.length);
 				[].filter.call(toc, item => {
 					return item.classList.contains('level-1') || item.classList.contains('level-2')
 				}).forEach(item => {
@@ -120,14 +121,44 @@ export default {
 				});
 			}
 
+			article.addEventListener('scroll', this.onScroll);
+			eventBus.emit('TOC:Scroll', article);
+
 			this.show = true;
 			history.pushState(null, null, '/?article=' + data.id);
 		});
 		eventBus.on('hideArticle', () => {
+			article.removeEventListener('scroll', this.onScroll);
+			article = null;
 			this.contentList.splice(0, this.contentList.length);
 			history.pushState(null, null, '/');
 			this.show = false;
 			eventBus.emit('hideArticleTitle');
+		});
+		eventBus.on('Article:Go:Top', () => {
+			article.scrollTo(0, 0);
+		});
+		eventBus.on('Article:Go:Bottom', () => {
+			article.scrollTo(0, article.scrollHeight);
+		});
+		eventBus.on('Article:Go:Up', slow => {
+			var top = article.scrollTop - (slow ? 5 : 50);
+			if (top < 0) top = 0;
+			article.scrollTo(0, top);
+		});
+		eventBus.on('Article:Go:Down', slow => {
+			var top = article.scrollTop + (slow ? 5 : 50);
+			if (top > article.scrollHeight) top = article.scrollHeight;
+			article.scrollTo(0, top);
+		});
+		eventBus.on('Article:Go:Prev', () => {
+			eventBus.emit('TOC:Go:Prev', article);
+		});
+		eventBus.on('Article:Go:Next', () => {
+			eventBus.emit('TOC:Go:Next', article);
+		});
+		eventBus.on('Article:Go:Position', target => {
+			article.scrollTo(0, target);
 		});
 	},
 	methods: {
@@ -169,6 +200,9 @@ export default {
 				id: id,
 				hash: history
 			});
+		},
+		onScroll (evt) {
+			eventBus.emit('TOC:Scroll', article);
 		},
 		getImageContainer (ele) {
 			var tag = ele.tagName.toLowerCase();
