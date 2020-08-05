@@ -143,6 +143,13 @@ const saveResource = async (data, socket, event) => {
 		socket.send('saveResource', null, '上传到星网失败')
 	}
 };
+const appendComment = async (data, socket, event) => {
+	console.log(data);
+
+	socket.send('AppendComment', {
+		message: 'What The Fuck!!!'
+	});
+};
 
 module.exports = [
 	{
@@ -152,5 +159,9 @@ module.exports = [
 	{
 		event: 'saveResource',
 		callback: saveResource
+	},
+	{
+		event: 'AppendComment',
+		callback: appendComment
 	}
 ];

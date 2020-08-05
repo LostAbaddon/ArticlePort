@@ -51,7 +51,10 @@ export default {
 		});
 		eventBus.on('TOC:Go:Prev', container => {
 			var index = this.index - 1;
-			if (index < 0) return;
+			if (index < 0) {
+				eventBus.emit('Article:Go:Top');
+				return;
+			}
 			var target = this.list[index];
 			target = target.link.substring(1, target.link.length);
 			target = 'a[name="' + target + '"]';
@@ -63,7 +66,10 @@ export default {
 		});
 		eventBus.on('TOC:Go:Next', container => {
 			var index = this.index + 1;
-			if (index > this.list.length) return;
+			if (index > this.list.length) {
+				eventBus.emit('Article:Go:Bottom');
+				return;
+			}
 			var target = this.list[index];
 			target = target.link.substring(1, target.link.length);
 			target = 'a[name="' + target + '"]';

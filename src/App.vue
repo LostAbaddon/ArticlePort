@@ -33,7 +33,9 @@ export default {
 	data () {
 		return {
 			nodeInfo: {},
-			imageShown: false
+			imageShown: false,
+			userID: '',
+			userName: ''
 		};
 	},
 	components: {
@@ -52,6 +54,7 @@ export default {
 			if (evt.which !== 27) return;
 			this.onClose();
 		});
+
 		eventBus.on('showImageWall', () => {
 			this.imageShown = true;
 		});
@@ -59,13 +62,23 @@ export default {
 			this.imageShown = false;
 		});
 		eventBus.on('ToggleEsc', () => this.onClose());
+		eventBus.on('Article:Comment:Append', info => {
+			info.userName = this.userName;
+			info.userID = this.userID;
+			eventBus.emit('loadStart');
+			this.$net.emit('AppendComment', info);
+		});
+
 		this.$net.register('RequestStarPortInfo', (msg, err, event) => {
-			console.log(msg);
 			eventBus.emit('loadFinish');
 			if (!!err) {
 				eventBus.emit('popupShow', '出错', err);
 				return;
 			}
+
+			this.userID = msg.id;
+			this.userName = msg.name;
+
 			eventBus.emit('updateNodeInfo', {
 				name: msg.name,
 				id: msg.id,
@@ -94,6 +107,10 @@ export default {
 		this.$net.register('GetTimeline', (msg, err, event) => {
 			eventBus.emit('updateTimeline', msg);
 		});
+		this.$net.register('AppendComment', (msg, err, event) => {
+			eventBus.emit('loadFinish');
+			console.log(msg, err);
+		});
 
 		eventBus.emit('loadStart');
 		this.$net.emit('RequestStarPortInfo', ['ArticleMarket', 'ArticleComments']);
@@ -117,10 +134,18 @@ export default {
 		moveDown (evt) {
 			eventBus.emit('Article:Go:Down', evt.shiftKey);
 		},
-		goTop () {
+		goTop (evt) {
+			var tag = evt.target.tagName.toLowerCase();
+			if (tag === 'input' || tag === 'textarea') return;
+			tag = evt.target.getAttribute('contenteditable');
+			if (tag === true || tag === 'true') return;
 			eventBus.emit('Article:Go:Top');
 		},
-		goBottom () {
+		goBottom (evt) {
+			var tag = evt.target.tagName.toLowerCase();
+			if (tag === 'input' || tag === 'textarea') return;
+			tag = evt.target.getAttribute('contenteditable');
+			if (tag === true || tag === 'true') return;
 			eventBus.emit('Article:Go:Bottom');
 		},
 		goPrev () {

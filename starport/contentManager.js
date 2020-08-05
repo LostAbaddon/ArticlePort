@@ -8,6 +8,7 @@ const IO = require('../server/socket');;
 
 const SelfFetchRetry = 1000 * 60;
 const SelfFetchDelay = 1000 * 60 * 10;
+const FetchWindow    = 1000 * 60 * 10;
 
 const storagePath = Path.join(process.cwd(), 'storage');
 _("Utils").preparePath(storagePath, ok => {
@@ -274,13 +275,16 @@ class ContentChannel {
 			path = path || this.file;
 			var json = await getJSON(path);
 			if (!json.content) return res(false);
-			this.lastUpdate = Math.max(this.lastUpdate, json.lastUpdate);
-			this.version = Math.max(this.version, json.version);
+			var limit = (this.lastUpdate || 0) - FetchWindow;
 			var changed = false;
-			json.content.forEach(content => {
-				changed = this.add(content) || changed;
+			json.content.some(content => {
+				if ((content.publishAt || 0) >= limit) console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+				if ((content.publishAt || 0) >= limit) changed = this.add(content) || changed;
+				else return true;
 			});
 			this.arrange();
+			this.lastUpdate = Math.max(this.lastUpdate, json.lastUpdate);
+			this.version = Math.max(this.version, json.version);
 			res(changed);
 		});
 	}
@@ -318,7 +322,7 @@ class ContentTimeLine {
 	changed = false;
 	folderpath = '';
 	timeline = [];
-	group;
+	group; // 所属 TimeLineGroup
 
 	constructor (path) {
 		if (!!path) this.folderpath = path;
@@ -494,20 +498,27 @@ class TimeLineGroup {
 		if (!this.changed) return;
 
 		var timeline = [];
+		var changed = [];
 		Object.keys(this.timelines).forEach(tl => {
 			tl = this.timelines[tl];
 			tl.update();
 			tl = tl.timeline;
 			tl.forEach(item => {
 				var old = this.contentMap[item.id];
-				if (!old) this.contentMap[item.id] = item;
-				else old.merge(item);
+				if (!old) {
+					this.contentMap[item.id] = item;
+					changed.push(item);
+				}
+				else {
+					if (old.merge(item)) changed.push(item);
+				}
 			});
 		});
 		timeline = Object.keys(this.contentMap).map(id => this.contentMap[id]);
 		timeline.sort((ca, cb) => cb.publishAt - ca.publishAt);
 		this.timeline = timeline;
 		this.changed = false;
+		console.log(changed);
 	}
 	getTimeline (channels) {
 		if (!channels) {

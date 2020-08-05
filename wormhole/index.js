@@ -14,6 +14,7 @@ const Wormhole = {};
 const NodeMap = {};
 const ReAlohaDelay = 1000 * 60 * 3;
 const ReplyDelay = 1000 * 60 * 5;
+const ReceiveWindow = 1000 * 60 * 10;
 const MessageHistory = new LRUCache(1000);
 
 var timerAloha = null;
@@ -77,6 +78,7 @@ const dealMessage = async msg => {
 	var node = msg.sender;
 	var action = msg.event;
 	if (!node || !action) return;
+	if (msg.stamp < Date.now() - ReceiveWindow) return;
 
 	var message = msg.message;
 	action = Responsor[action];

@@ -9,18 +9,6 @@
 import eventBus from './eventbus.js';
 import toc from './toc.vue';
 
-const newEle = (tagName, classList, id) => {
-	var ele = document.createElement(tagName);
-	if (!!id) ele.id = id;
-	if (!!classList) {
-		if (classList.toString() === classList) classList = classList.split(' ');
-		if (classList instanceof Array) {
-			classList.forEach(c => ele.classList.add(c));
-		}
-	}
-	return ele;
-};
-
 var net;
 var article;
 
@@ -29,7 +17,9 @@ export default {
 	data () {
 		return {
 			show: false,
-			contentList: []
+			contentList: [],
+			articleID: '',
+			articleHash: ''
 		}
 	},
 	components: {
@@ -51,6 +41,8 @@ export default {
 		);
 
 		this.$net.register('GetArticleByID', (data, err) => {
+			this.articleID = data.id;
+			this.articleHash = data.hash;
 			eventBus.emit('loadFinish');
 			if (!!err) {
 				eventBus.emit('popupShow', '出错', err);
@@ -73,7 +65,7 @@ export default {
 			if (!!content.meta.email) inner += '<a href="email:' + content.meta.email + '">';
 			inner += content.meta.author || data.author;
 			if (!!content.meta.email) inner += '</a>';
-			inner += '</span><span class="article-publisher">发布者：' + data.publisher + '</span></div>';
+			inner += '</span><span class="article-publisher">发布者：' + (data.publisher.name || data.publisher) + '</span></div>';
 			inner += '<div class="article-writeAt">写于：<span>' + this.num2time(content.meta.update) + '</span></div>'
 			inner += '<div class="article-fingerprint">本文指纹：<span>' + data.fingerprint + '</span></div>'
 			info.innerHTML = inner;
@@ -103,6 +95,8 @@ export default {
 				article.appendChild(info);
 			}
 
+			// 添加评论
+
 			// LaTeX 显示
 			MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
 
@@ -121,11 +115,16 @@ export default {
 				});
 			}
 
-			article.addEventListener('scroll', this.onScroll);
-			eventBus.emit('TOC:Scroll', article);
+			// 添加评论区
+			this.initCommentPanel();
 
-			this.show = true;
+			// 事件处理
+			article.addEventListener('scroll', this.onScroll);
+
+			// 初始化
+			eventBus.emit('TOC:Scroll', article);
 			history.pushState(null, null, '/?article=' + data.id);
+			this.show = true;
 		});
 		eventBus.on('hideArticle', () => {
 			article.removeEventListener('scroll', this.onScroll);
@@ -139,7 +138,16 @@ export default {
 			article.scrollTo(0, 0);
 		});
 		eventBus.on('Article:Go:Bottom', () => {
-			article.scrollTo(0, article.scrollHeight);
+			var area = article.querySelector('section.comment-panel');
+			var top = area.getBoundingClientRect().top;
+			var base = article.getBoundingClientRect().top;
+			top -= base;
+			if (top < 100) {
+				article.scrollTo(0, article.scrollHeight);
+			}
+			else {
+				article.scrollTo(0, article.scrollTop + top);
+			}
 		});
 		eventBus.on('Article:Go:Up', slow => {
 			var top = article.scrollTop - (slow ? 5 : 50);
@@ -188,6 +196,11 @@ export default {
 			if (!ele.tagName) return;
 
 			var tag = ele.tagName.toLowerCase();
+			if (tag === 'button' && ele.classList.contains('append-comment')) {
+				this.appendComment();
+				return;
+			}
+
 			if (this.showImage(ele)) return;
 
 			if (tag !== 'li') return;
@@ -203,6 +216,16 @@ export default {
 		},
 		onScroll (evt) {
 			eventBus.emit('TOC:Scroll', article);
+		},
+		appendComment () {
+			var comment = article.querySelector('section.comment-panel textarea');
+			if (!comment) return;
+			comment = comment.value;
+			eventBus.emit('Article:Comment:Append', {
+				id: this.articleID,
+				hash: this.articleHash,
+				comment
+			});
 		},
 		getImageContainer (ele) {
 			var tag = ele.tagName.toLowerCase();
@@ -260,6 +283,18 @@ export default {
 			}
 			eventBus.emit('showImageWall', imageWall, index);
 			return true;
+		},
+		initCommentPanel () {
+			var area = newEle('section', 'comment-panel');
+			var ele = newEle('h1');
+			ele.innerHTML = '评论';
+			area.appendChild(ele);
+			ele = newEle('textarea', 'scroller');
+			area.appendChild(ele);
+			ele = newEle('button', 'append-comment');
+			ele.innerHTML = '追加评论';
+			area.appendChild(ele);
+			article.appendChild(area);
 		}
 	}
 };
@@ -343,6 +378,8 @@ export default {
 }
 .article-container .container > article p {
 	word-break: break-word;
+	font-size: 16px;
+	line-height: 24px;
 }
 .article-container .container > article > section.history-versions {
 	margin-top: 50px;
@@ -367,5 +404,32 @@ export default {
 .article-container .container > article .endnote-chapter p,
 .article-container .container > article .endnote-chapter li {
 	word-break: break-word;
+}
+.article-container .container > article > section.comment-panel {
+	border-top: 1px solid rgb(66, 80, 102);
+}
+.article-container .container > article > section.comment-panel textarea {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	height: 150px;
+	padding: 8px;
+	margin-bottom: 10px;
+	border: 1px solid rgb(66, 80, 102);
+	border-radius: 8px;
+	background-color: rgb(0, 31, 53);
+	box-shadow: inset 0px 0px 5px 1px rgb(0, 0, 0);
+	color: rgb(225, 225, 225);
+	outline: none;
+	resize: none;
+}
+.article-container .container > article > section.comment-panel button.append-comment {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	border: none;
+	outline: none;
+	background-color: transparent;
+	cursor: pointer;
 }
 </style>
